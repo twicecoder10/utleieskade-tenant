@@ -1,5 +1,5 @@
 import React from "react";
-import { TouchableOpacity, Text, Image, View } from "react-native";
+import { TouchableOpacity, Text, Image } from "react-native";
 
 interface PressableButtonProps {
   label: string;
@@ -31,9 +31,7 @@ const Button: React.FC<PressableButtonProps> = ({
           resizeMode="contain"
         />
       )}
-      <Text className={`text-center font-medium text-base ${textStyle}`}>
-        {label}
-      </Text>
+      <Text className={`text-center font-medium ${textStyle}`}>{label}</Text>
     </TouchableOpacity>
   );
 };
