@@ -76,7 +76,7 @@ export default function TabLayout() {
         />
       </Tabs>
 
-      <StatusBar style="light" />
+      <StatusBar style="dark" />
     </>
   );
 }

@@ -52,8 +52,8 @@ export default function HomeScreen() {
           </Text>
         </View>
         <Image
-          source={{ uri: "https://example.com/report-damages.png" }} // Replace with your image URL
-          className="w-16 h-16"
+          source={require("@/assets/images/report-damages.png")}
+          className="size-[80px]"
           resizeMode="contain"
         />
       </TouchableOpacity>
