@@ -8,6 +8,7 @@ interface PressableButtonProps {
   iconSize?: number;
   style?: string;
   textStyle?: string;
+  disabled?: boolean;
 }
 
 const Button: React.FC<PressableButtonProps> = ({
@@ -17,12 +18,14 @@ const Button: React.FC<PressableButtonProps> = ({
   iconSize = 24,
   style = "",
   textStyle = "text-white",
+  disabled,
 }) => {
   return (
     <TouchableOpacity
       onPress={onPress}
       activeOpacity={0.7}
       className={`flex-row items-center justify-center ${style}`}
+      disabled={disabled}
     >
       {iconImage && (
         <Image

@@ -25,7 +25,7 @@ const SignInScreen = () => {
   const [showPassword, setShowPassword] = useState(false);
 
   return (
-    <SafeAreaView className="flex-1 px-4 py-2 bg-white">
+    <SafeAreaView className="flex-1 p-4 pb-6 bg-white">
       <ScrollView>
         <View className="flex-row justify-center pt-8">
           <Image

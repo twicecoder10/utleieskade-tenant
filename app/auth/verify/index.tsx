@@ -18,7 +18,7 @@ import Button from "@/components/ui/Button";
 
 const Verify = () => {
   return (
-    <SafeAreaView className="flex-1 px-4 py-2 pb-8 bg-white">
+    <SafeAreaView className="flex-1 p-4 pb-6 bg-white">
       <View className="mb-4 py-2">
         <TouchableOpacity onPress={() => router.back()} activeOpacity={0.7}>
           <Ionicons name="arrow-back" size={24} color="#101828" />

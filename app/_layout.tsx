@@ -66,6 +66,14 @@ function RootLayout() {
         ) : (
           <Stack>
             <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+            <Stack.Screen
+              name="settings/change-password"
+              options={{ headerShown: false }}
+            />
+            <Stack.Screen
+              name="settings/privacy-policy"
+              options={{ headerShown: false }}
+            />
             <Stack.Screen name="+not-found" />
           </Stack>
         )}
