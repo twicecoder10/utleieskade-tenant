@@ -30,7 +30,7 @@ const SignupScreen = () => {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   return (
-    <SafeAreaView className="flex-1 px-4 py-2 bg-white">
+    <SafeAreaView className="flex-1 p-4 pb-6 bg-white">
       <ScrollView showsVerticalScrollIndicator={false}>
         <View className="flex-row justify-center pt-8">
           <Image
@@ -227,6 +227,46 @@ const SignupScreen = () => {
             </View>
           </View>
         </KeyboardAvoidingView>
+
+        {/* or */}
+        <View className="flex-row items-center my-4 px-6">
+          <View className="flex-1 h-px bg-neutral-300" />
+          <Text className="mx-2 text-neutral-500">or</Text>
+          <View className="flex-1 h-px bg-neutral-300" />
+        </View>
+
+        {/* social login */}
+        <View className="gap-4">
+          <Button
+            label="Sign Up with Google"
+            onPress={() => console.log("Google Sign Up")}
+            iconImage={require("@/assets/images/google.png")}
+            style="bg-white border border-[#E2E2E2] p-3 rounded-full w-full"
+            textStyle="font-bold text-neutral-900 text-xl"
+          />
+
+          <Button
+            label="Sign Up with Apple"
+            onPress={() => console.log("Apple Sign Up")}
+            iconImage={require("@/assets/images/apple.png")}
+            style="bg-black p-3 rounded-full w-full"
+            textStyle="font-bold text-white text-xl"
+          />
+        </View>
+
+        {/* terms */}
+        <View className="flex-row w-full flex-wrap justify-center gap-x-1 gap-y-0 mt-4">
+          <Text className="text-center text-base text-neutral-500">
+            By clicking 'Sign Up', You agree to our
+          </Text>
+          <TouchableOpacity activeOpacity={0.7}>
+            <Text className="text-primary-500">Terms of Service</Text>
+          </TouchableOpacity>
+          <Text className="text-center text-base text-neutral-500">and</Text>
+          <TouchableOpacity activeOpacity={0.7}>
+            <Text className="text-primary-500">Privacy Policy</Text>
+          </TouchableOpacity>
+        </View>
 
         <StatusBar style={Platform.OS === "ios" ? "auto" : "dark"} />
       </ScrollView>
