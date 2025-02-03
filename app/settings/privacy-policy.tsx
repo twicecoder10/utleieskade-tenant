@@ -72,11 +72,11 @@ const PrivacyPolicyScreen = () => {
 
         {/* Consent Management */}
         <View className="flex flex-col gap-4 mt-6">
-          <Text className="mb-4 text-lg font-semibold text-neutral-700">
+          <Text className="text-lg font-semibold text-neutral-700">
             Consent Management
           </Text>
 
-          <View className="space-y-4">
+          <View className="flex flex-col">
             <ConsentItem
               title="Essential Cookies"
               description="Required for basic app functionality"

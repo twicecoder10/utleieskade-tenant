@@ -74,6 +74,22 @@ function RootLayout() {
               name="settings/privacy-policy"
               options={{ headerShown: false }}
             />
+            <Stack.Screen
+              name="reports/all-cases"
+              options={{ headerShown: false }}
+            />
+            <Stack.Screen
+              name="reports/report-damage"
+              options={{ headerShown: false }}
+            />
+            <Stack.Screen
+              name="reports/report-details"
+              options={{ headerShown: false }}
+            />
+            <Stack.Screen
+              name="reports/saved-drafts"
+              options={{ headerShown: false }}
+            />
             <Stack.Screen name="+not-found" />
           </Stack>
         )}
