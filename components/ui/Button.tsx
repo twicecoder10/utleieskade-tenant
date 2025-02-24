@@ -2,7 +2,7 @@ import React from "react";
 import { TouchableOpacity, Text, Image } from "react-native";
 
 interface PressableButtonProps {
-  label: string;
+  label: React.ReactNode;
   onPress: () => void;
   iconImage?: any;
   iconSize?: number;
@@ -34,7 +34,11 @@ const Button: React.FC<PressableButtonProps> = ({
           resizeMode="contain"
         />
       )}
-      <Text className={`text-center font-medium ${textStyle}`}>{label}</Text>
+      {typeof label === "string" ? (
+        <Text className={`text-center font-medium ${textStyle}`}>{label}</Text>
+      ) : (
+        label
+      )}
     </TouchableOpacity>
   );
 };
