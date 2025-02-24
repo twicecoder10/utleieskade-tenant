@@ -10,23 +10,70 @@ import {
   ScrollView,
   Image,
   TouchableOpacity,
+  ActivityIndicator,
+  Alert,
 } from "react-native";
 import { router } from "expo-router";
-import { StatusBar } from "expo-status-bar";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import Button from "@/components/ui/Button";
-import { useAuth } from "@/hooks/useAuth";
+
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useAppDispatch } from "@/store/store";
+import { updateUser, setLoggedIn } from "@/slice/userSlice";
+import { StatusBar } from "expo-status-bar";
+import { useLoginMutation } from "@/slice/auth/index.service";
 
 const SignInScreen = () => {
-  const { isAuthenticated, user, login, logout } = useAuth();
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+  const [userEmail, setUserEmail] = useState("");
+  const [userPassword, setUserPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
+
+  const dispatch = useAppDispatch();
+  const [login, { isLoading }] = useLoginMutation();
+
+  const handleLogin = async () => {
+    setErrorMessage("");
+
+    if (!userEmail || !userPassword) {
+      setErrorMessage("Please enter both email and password.");
+      return;
+    }
+
+    console.log("Logging in with:", { userEmail, userPassword });
+
+    try {
+      const response = await login({ userEmail, userPassword }).unwrap();
+      const { token, user } = response?.data;
+
+      await AsyncStorage.setItem("userToken", token);
+      await AsyncStorage.setItem("isLoggedIn", "true");
+
+      dispatch(updateUser(user));
+      dispatch(setLoggedIn(true));
+
+      // Navigate to the main app
+      router.replace("/(tabs)");
+    } catch (error: any) {
+      console.error("Login Error:", error);
+
+      Alert.alert(
+        "Login Failed",
+        error?.data?.message || "Invalid email or password. Please try again.",
+        [{ text: "OK" }]
+      );
+
+      setErrorMessage("Invalid email or password. Please try again.");
+      setTimeout(() => {
+        setErrorMessage("");
+      }, 3000);
+    }
+  };
 
   return (
     <SafeAreaView className="flex-1 p-4 pb-6 bg-white">
-      <ScrollView>
+      <ScrollView showsVerticalScrollIndicator={false}>
         <View className="flex-row justify-center pt-8">
           <Image
             source={require("@/assets/images/Logo2.png")}
@@ -52,8 +99,8 @@ const SignInScreen = () => {
                 <Text className="text-base">E-mail</Text>
                 <TextInput
                   placeholder="Email Address"
-                  value={email}
-                  onChangeText={setEmail}
+                  value={userEmail}
+                  onChangeText={setUserEmail}
                   className="text-base text-neutral-400 rounded-xl border border-neutral-400 py-2 px-3.5 h-[44px]"
                   keyboardType="email-address"
                   autoCapitalize="none"
@@ -67,8 +114,8 @@ const SignInScreen = () => {
                 <View className="relative">
                   <TextInput
                     placeholder="Password"
-                    value={password}
-                    onChangeText={setPassword}
+                    value={userPassword}
+                    onChangeText={setUserPassword}
                     secureTextEntry={!showPassword}
                     className="text-base text-neutral-400 rounded-xl border border-neutral-400 py-2 pl-3.5 pr-12 h-[44px]"
                   />
@@ -100,16 +147,18 @@ const SignInScreen = () => {
           </TouchableWithoutFeedback>
         </KeyboardAvoidingView>
 
+        {/* erorr message */}
+        {errorMessage ? (
+          <Text className="text-red-500 text-center mt-2">{errorMessage}</Text>
+        ) : null}
+
         {/* Continue Button */}
         <View className="mt-10">
           <Button
-            label="Sign In"
-            // onPress={() => router.push("/(tabs)")}
-            onPress={() => {
-              login({ email: email, password: password });
-              router.push("/(tabs)");
-            }}
-            style="bg-primary-500 p-3 rounded-full w-full"
+            label={isLoading ? <ActivityIndicator color="#FFF" /> : "Sign In"}
+            onPress={handleLogin}
+            disabled={isLoading}
+            style="bg-primary-500 p-3 rounded-full w-full flex items-center justify-center"
             textStyle="font-bold text-white text-xl"
           />
 

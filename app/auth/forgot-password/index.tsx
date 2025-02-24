@@ -26,7 +26,7 @@ const ForgotPasswordScreen = () => {
   return (
     <SafeAreaView className="flex-1 px-4 py-2 pb-8 bg-white">
       {/* Back Button */}
-      <View className="mb-4 flex-row items-center pt-8">
+      <View className="mb-4 flex-row items-center pt-4">
         <Pressable onPress={() => router.back()}>
           <Ionicons name="chevron-back" size={24} color="#101828" />
         </Pressable>

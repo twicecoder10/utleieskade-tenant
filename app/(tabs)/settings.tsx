@@ -12,10 +12,16 @@ import { AntDesign, Feather, MaterialIcons } from "@expo/vector-icons";
 import Header from "@/components/ui/Header";
 import Button from "@/components/ui/Button";
 import { router } from "expo-router";
-import { useAuth } from "@/hooks/useAuth";
+import { logout } from "@/slice/userSlice";
+import { useAppDispatch } from "@/store/store";
 
 export default function SettingsScreen() {
-  const { logout } = useAuth();
+  const dispatch = useAppDispatch();
+
+  const handleLogout = () => {
+    dispatch(logout());
+  };
+
   const [fullName, setFullName] = useState("John Doe");
   const [phone, setPhone] = useState("+47 123 45 678");
   const [email, setEmail] = useState("johndoe@example.com");
@@ -254,7 +260,7 @@ export default function SettingsScreen() {
 
         {/* Logout */}
         <TouchableOpacity
-          onPress={logout}
+          onPress={handleLogout}
           className="flex-row justify-center items-center gap-3 mt-6"
         >
           <View style={{ transform: [{ rotate: "180deg" }] }}>

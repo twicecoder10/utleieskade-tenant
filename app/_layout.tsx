@@ -12,20 +12,23 @@ import "react-native-reanimated";
 import "../global.css";
 
 import { useColorScheme } from "@/hooks/useColorScheme";
-import { AuthProvider, useAuth } from "@/hooks/useAuth";
+import StoreProvider from "@/store/StoreProvider";
+import { useAppDispatch, useAppSelector } from "@/store/store";
+import { checkAuthAsync } from "@/slice/userSlice";
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
 
 function RootLayout() {
   const colorScheme = useColorScheme();
-  const { isAuthenticated } = useAuth();
   const [isLayoutReady, setIsLayoutReady] = useState(false);
   const [loaded, font_error] = useFonts({
     DMSans: require("../assets/fonts/DMSans-Regular.ttf"),
   });
 
   const router = useRouter();
+  const dispatch = useAppDispatch();
+  const { isLoggedIn } = useAppSelector((state) => state.user);
 
   useEffect(() => {
     if (loaded) {
@@ -39,11 +42,20 @@ function RootLayout() {
 
   useEffect(() => {
     if (isLayoutReady) {
-      if (!isAuthenticated) {
+      dispatch(checkAuthAsync());
+    }
+  }, [isLayoutReady]);
+
+  useEffect(() => {
+    if (isLayoutReady) {
+      if (!isLoggedIn) {
         router.replace("/auth");
+      } else {
+        router.replace("/(tabs)");
       }
     }
-  }, [isAuthenticated, isLayoutReady]);
+  }, [isLoggedIn, isLayoutReady]);
+
   if (!loaded) {
     return null;
   }
@@ -51,8 +63,7 @@ function RootLayout() {
   return (
     <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
       <Stack screenOptions={{ headerShown: false }}>
-        {/* Check authentication status */}
-        {!isAuthenticated ? (
+        {!isLoggedIn ? (
           <Stack screenOptions={{ headerShown: false }}>
             <Stack.Screen name="auth" options={{ headerShown: false }} />
             <Stack.Screen name="auth/signup" options={{ headerShown: false }} />
@@ -102,9 +113,8 @@ function RootLayout() {
 
 export default function App() {
   return (
-    <AuthProvider>
+    <StoreProvider>
       <RootLayout />
-    </AuthProvider>
+    </StoreProvider>
   );
 }
-
