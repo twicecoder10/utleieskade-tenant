@@ -6,6 +6,8 @@ import {
   TouchableOpacity,
   ScrollView,
   Image,
+  ActivityIndicator,
+  Alert,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { AntDesign, Feather, MaterialIcons } from "@expo/vector-icons";
@@ -14,7 +16,10 @@ import Button from "@/components/ui/Button";
 import { router } from "expo-router";
 import { logout } from "@/slice/userSlice";
 import { useAppDispatch } from "@/store/store";
-import { useGetUserQuery } from "@/slice/auth/index.service";
+import {
+  useGetUserQuery,
+  useUpdateUserMutation,
+} from "@/slice/auth/index.service";
 
 export default function SettingsScreen() {
   const dispatch = useAppDispatch();
@@ -23,20 +28,48 @@ export default function SettingsScreen() {
     dispatch(logout());
   };
 
-  const { data, isLoading, error } = useGetUserQuery({});
+  const { data, error } = useGetUserQuery({});
 
   // if (isLoading) return <Text>Loading...</Text>;
   // if (error) return <Text>Error fetching data!</Text>;
 
   const user = data?.data || {};
 
-  const [fullName, setFullName] = useState(
-    `${user?.userFirstName} ${user?.userLastName}`
-  );
-  const [phone, setPhone] = useState(`${user?.userPhone}`);
-  const [email, setEmail] = useState(`${user?.userEmail}`);
+  const [firstName, setFirstName] = useState(user?.userFirstName || "");
+  const [lastName, setLastName] = useState(user?.userLastName || "");
+  const [phone, setPhone] = useState(user?.userPhone || "");
+  const [email, setEmail] = useState(user?.userEmail || "");
   const [selectedLanguage, setSelectedLanguage] = useState("English");
   const [selectedTheme, setSelectedTheme] = useState("Light");
+
+  const [updateUser] = useUpdateUserMutation();
+  const [isLoading, setIsLoading] = useState(false);
+
+  const handleSaveChanges = async () => {
+    setIsLoading(true);
+
+    const updatedUser = {
+      userFirstName: firstName,
+      userLastName: lastName,
+      userEmail: email,
+      userPhone: phone,
+    };
+
+    try {
+      await updateUser(updatedUser).unwrap();
+      console.log("Profile updated successfully!");
+      Alert.alert("Success", "Your profile has been updated successfully.");
+    } catch (error: any) {
+      console.error("Failed to update profile:", error);
+      Alert.alert(
+        "Error",
+        error?.data?.message || "Failed to update profile. Please try again.",
+        [{ text: "Retry" }]
+      );
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   return (
     <SafeAreaView className="flex-1 p-4 pb-6 bg-white">
@@ -70,21 +103,41 @@ export default function SettingsScreen() {
               </TouchableOpacity>
             </View>
             <View className="ml-3">
-              <Text className="text-lg font-semibold">{fullName}</Text>
+              <Text className="text-lg font-semibold">
+                {firstName} {lastName}
+              </Text>
               <Text className="text-gray-500">{email}</Text>
             </View>
           </View>
 
-          {/* Editable Fields */}
           <View className="mt-4 flex flex-col gap-4">
-            {/* Full Name */}
+            {/* First Name */}
             <View className="flex flex-col gap-1">
-              <Text className="text-neutral-400 text-base">Full Name</Text>
+              <Text className="text-neutral-400 text-base">First Name</Text>
               <View className="relative">
                 <TextInput
-                  value={fullName}
-                  onChangeText={setFullName}
-                  placeholder="Full Name"
+                  value={firstName}
+                  onChangeText={setFirstName}
+                  placeholder="First Name"
+                  className="border border-gray-300 rounded-lg px-4 py-3 h-[44px] text-base text-neutral-900 font-medium pr-10"
+                />
+                <Feather
+                  name="edit-3"
+                  size={20}
+                  color="#98A2B3"
+                  className="absolute right-3 top-1/2 -translate-y-1/2"
+                />
+              </View>
+            </View>
+
+            {/* Last Name */}
+            <View className="flex flex-col gap-1">
+              <Text className="text-neutral-400 text-base">Last Name</Text>
+              <View className="relative">
+                <TextInput
+                  value={lastName}
+                  onChangeText={setLastName}
+                  placeholder="Last Name"
                   className="border border-gray-300 rounded-lg px-4 py-3 h-[44px] text-base text-neutral-900 font-medium pr-10"
                 />
                 <Feather
@@ -138,10 +191,13 @@ export default function SettingsScreen() {
 
             {/* Save Changes Button */}
             <Button
-              label="Save Changes"
-              onPress={() => console.log("Changes Saved!")}
+              label={
+                isLoading ? <ActivityIndicator color="#FFF" /> : "Save Changes"
+              }
+              onPress={handleSaveChanges}
               style="bg-primary-500 p-3 rounded-full w-full"
               textStyle="font-bold text-white text-xl"
+              disabled={isLoading}
             />
           </View>
         </View>

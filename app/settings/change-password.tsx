@@ -2,7 +2,6 @@ import React, { useState } from "react";
 import {
   View,
   Text,
-  Image,
   Platform,
   TextInput,
   KeyboardAvoidingView,
@@ -10,18 +9,49 @@ import {
   Keyboard,
   ScrollView,
   TouchableOpacity,
+  ActivityIndicator,
+  Alert,
 } from "react-native";
+
 import { router } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import Button from "@/components/ui/Button";
 import Header from "@/components/ui/Header";
+import { useUpdateUserMutation } from "@/slice/auth/index.service";
 
 const ChangePasswordScreen = () => {
-  const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [createPassword, setCreatePassword] = useState("");
   const [showCreatePassword, setShowCreatePassword] = useState(false);
+  const [updateUser] = useUpdateUserMutation();
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+
+  const handleChangePassword = async () => {
+    setIsLoading(true);
+
+    const updatedUser = {
+      currentPassword,
+      newPassword,
+    };
+
+    try {
+      await updateUser(updatedUser).unwrap();
+      console.log("Password changed successfully!");
+      Alert.alert("Success", "Your password has been changed successfully.");
+      router.push("/(tabs)/settings");
+    } catch (error: any) {
+      console.error("Failed to change password:", error);
+      Alert.alert(
+        "Error",
+        error?.data?.message || "Failed to change password. Please try again.",
+        [{ text: "Retry" }]
+      );
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   return (
     <SafeAreaView className="flex-1 p-4 pb-6 bg-white">
@@ -40,8 +70,8 @@ const ChangePasswordScreen = () => {
                 <View className="relative">
                   <TextInput
                     placeholder="Enter password here"
-                    value={password}
-                    onChangeText={setPassword}
+                    value={currentPassword}
+                    onChangeText={setCurrentPassword}
                     secureTextEntry={!showPassword}
                     className="text-base text-neutral-400 rounded-xl border border-neutral-400 py-2 pl-3.5 pr-12 h-[44px]"
                   />
@@ -66,8 +96,8 @@ const ChangePasswordScreen = () => {
                 <View className="relative">
                   <TextInput
                     placeholder="New password"
-                    value={createPassword}
-                    onChangeText={setCreatePassword}
+                    value={newPassword}
+                    onChangeText={setNewPassword}
                     secureTextEntry={!showCreatePassword}
                     className="text-base text-neutral-400 rounded-xl border border-neutral-400 py-2 pl-3.5 pr-12 h-[44px]"
                   />
@@ -92,11 +122,17 @@ const ChangePasswordScreen = () => {
           {/* Continue Button */}
           <View className="mt-10">
             <Button
-              label="Change password"
-              onPress={() => router.push("/auth")}
+              label={
+                isLoading ? (
+                  <ActivityIndicator color="#FFF" />
+                ) : (
+                  "Change password"
+                )
+              }
+              onPress={handleChangePassword}
               style="bg-primary-500 p-3 rounded-full w-full disabled:opacity-50"
               textStyle="font-bold text-white text-xl"
-              disabled={!password || !createPassword}
+              disabled={!currentPassword || !newPassword || isLoading}
             />
           </View>
         </KeyboardAvoidingView>
