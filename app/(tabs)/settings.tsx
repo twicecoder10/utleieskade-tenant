@@ -14,6 +14,7 @@ import Button from "@/components/ui/Button";
 import { router } from "expo-router";
 import { logout } from "@/slice/userSlice";
 import { useAppDispatch } from "@/store/store";
+import { useGetUserQuery } from "@/slice/auth/index.service";
 
 export default function SettingsScreen() {
   const dispatch = useAppDispatch();
@@ -22,9 +23,18 @@ export default function SettingsScreen() {
     dispatch(logout());
   };
 
-  const [fullName, setFullName] = useState("John Doe");
-  const [phone, setPhone] = useState("+47 123 45 678");
-  const [email, setEmail] = useState("johndoe@example.com");
+  const { data, isLoading, error } = useGetUserQuery({});
+
+  // if (isLoading) return <Text>Loading...</Text>;
+  // if (error) return <Text>Error fetching data!</Text>;
+
+  const user = data?.data || {};
+
+  const [fullName, setFullName] = useState(
+    `${user?.userFirstName} ${user?.userLastName}`
+  );
+  const [phone, setPhone] = useState(`${user?.userPhone}`);
+  const [email, setEmail] = useState(`${user?.userEmail}`);
   const [selectedLanguage, setSelectedLanguage] = useState("English");
   const [selectedTheme, setSelectedTheme] = useState("Light");
 
@@ -36,18 +46,29 @@ export default function SettingsScreen() {
 
         {/* Profile Section */}
         <View className="bg-white p-5 rounded-2xl border border-[#E2E2E2] mt-6">
-          <Text className="mb-6 text-lg font-semibold text-neutral-700">
-            Account
-          </Text>
+          <View>
+            <Text className="mb-6 text-lg font-semibold text-neutral-700">
+              Account
+            </Text>
+            {/* <Text className="capitalize">Account Type: {user?.userType}</Text> */}
+          </View>
 
           <View className="flex-row items-center">
-            <Image
-              source={{ uri: "https://i.pravatar.cc/100" }}
-              className="size-[60px] rounded-full"
-              resizeMode="cover"
-              width={60}
-              height={60}
-            />
+            <View className="relative">
+              <Image
+                source={{ uri: "https://i.pravatar.cc/57" }}
+                className="size-[60px] rounded-full"
+                resizeMode="contain"
+                width={60}
+                height={60}
+              />
+              <TouchableOpacity
+                activeOpacity={0.7}
+                className="absolute -right-1 bottom-1 bg-primary-500 rounded-full p-1 flex-row items-center justify-center"
+              >
+                <Feather name="camera" size={12} color="white" />
+              </TouchableOpacity>
+            </View>
             <View className="ml-3">
               <Text className="text-lg font-semibold">{fullName}</Text>
               <Text className="text-gray-500">{email}</Text>

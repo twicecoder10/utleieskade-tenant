@@ -12,9 +12,17 @@ import Button from "@/components/ui/Button";
 import { CaseCard } from "@/components/ui/CaseCard";
 import { useState } from "react";
 import { cases, faqs } from "@/components/data";
+import { useGetUserQuery } from "@/slice/auth/index.service";
 
 export default function HomeScreen() {
   const [openIndex, setOpenIndex] = useState<number | null>(null);
+
+  const { data, isLoading, error } = useGetUserQuery({});
+
+  // if (isLoading) return <Text>Loading...</Text>;
+  // if (error) return <Text>Error fetching data!</Text>;
+
+  const user = data?.data || {};
 
   return (
     <SafeAreaView className="flex-1 p-4 pb-6 bg-white">
@@ -23,8 +31,10 @@ export default function HomeScreen() {
         <View className="flex-row items-center justify-between mt-2">
           <View className="flex-row items-center">
             <Ionicons name="location-outline" size={18} color="#667085" />
-            <Text className="ml-1 text-sm text-gray-500">Oslo, Norway</Text>
-            <Ionicons name="chevron-down-outline" size={16} color="#667085" />
+            <TouchableOpacity className="flex-row items-center">
+              <Text className="ml-1 text-sm text-gray-500">Oslo, Norway</Text>
+              <Ionicons name="chevron-down-outline" size={16} color="#667085" />
+            </TouchableOpacity>
           </View>
           <TouchableOpacity>
             <Ionicons name="notifications-outline" size={24} color="#667085" />
@@ -54,7 +64,7 @@ export default function HomeScreen() {
         {/* Welcome Section */}
         <View className="mt-6">
           <Text className="text-2xl font-semibold text-neutral-900">
-            Welcome back, Salif 👋
+            Welcome back, {user?.userFirstName || ""} 👋
           </Text>
           <Text className="text-sm text-neutral-500">
             Manage your property issues effortlessly
