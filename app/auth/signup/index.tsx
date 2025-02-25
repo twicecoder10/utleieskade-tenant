@@ -44,7 +44,6 @@ const SignupScreen = () => {
   const [requestOtp, { isLoading: isRequestingOtp }] = useRequestOtpMutation();
 
   const handleSignup = async () => {
-    // Validate required fields
     if (
       !userFirstName ||
       !userLastName ||
@@ -56,7 +55,7 @@ const SignupScreen = () => {
       !userCity ||
       !userPostcode ||
       !userCountry ||
-      !userType // Ensure userType is also checked
+      !userType
     ) {
       Alert.alert("Error", "All fields are required.");
       return;
@@ -68,7 +67,6 @@ const SignupScreen = () => {
     }
 
     try {
-      // Create payload matching backend expectations
       const userData = {
         userFirstName,
         userLastName,

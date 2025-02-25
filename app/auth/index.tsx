@@ -53,7 +53,6 @@ const SignInScreen = () => {
       dispatch(updateUser(user));
       dispatch(setLoggedIn(true));
 
-      // Navigate to the main app
       router.replace("/(tabs)");
     } catch (error: any) {
       console.error("Login Error:", error);
