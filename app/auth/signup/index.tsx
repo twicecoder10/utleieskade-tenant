@@ -22,10 +22,11 @@ import {
   useRegisterMutation,
   useRequestOtpMutation,
 } from "@/slice/auth/index.service";
+import { userDetailsSchema } from "@/schemas/userDetailsSchema";
+import { ZodError } from "zod";
 
 const SignupScreen = () => {
   const [userType, setUserType] = useState<"tenant" | "landlord">("tenant");
-
   const [userFirstName, setUserFirstName] = useState("");
   const [userLastName, setUserLastName] = useState("");
   const [userEmail, setUserEmail] = useState("");
@@ -37,35 +38,30 @@ const SignupScreen = () => {
   const [userPostcode, setUserPostcode] = useState("");
   const [userCountry, setUserCountry] = useState("");
 
+  const [errors, setErrors] = useState<Record<string, string>>({});
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const [register, { isLoading: isRegistering }] = useRegisterMutation();
   const [requestOtp, { isLoading: isRequestingOtp }] = useRequestOtpMutation();
 
+  const validateField = (field: string, value: string) => {
+    try {
+      const schema = userDetailsSchema.shape.pick({ [field]: true });
+      schema.parse({ [field]: value });
+      setErrors((prev) => ({ ...prev, [field]: "" }));
+      return true;
+    } catch (error) {
+      if (error instanceof ZodError) {
+        const fieldError = error.errors[0]?.message || `Invalid ${field}`;
+        setErrors((prev) => ({ ...prev, [field]: fieldError }));
+        return false;
+      }
+      return true;
+    }
+  };
+
   const handleSignup = async () => {
-    if (
-      !userFirstName ||
-      !userLastName ||
-      !userEmail ||
-      !userPhone ||
-      !userPassword ||
-      !confirmPassword ||
-      !userAddress ||
-      !userCity ||
-      !userPostcode ||
-      !userCountry ||
-      !userType
-    ) {
-      Alert.alert("Error", "All fields are required.");
-      return;
-    }
-
-    if (userPassword !== confirmPassword) {
-      Alert.alert("Error", "Passwords do not match.");
-      return;
-    }
-
     try {
       const userData = {
         userFirstName,
@@ -73,12 +69,17 @@ const SignupScreen = () => {
         userEmail,
         userPhone,
         userPassword,
+        confirmPassword,
         userAddress,
         userCity,
         userPostcode,
         userCountry,
         userType,
       };
+
+      userDetailsSchema.parse(userData);
+      // console.log("userData:", userData);
+      setErrors({});
 
       const response = await register(userData).unwrap();
 
@@ -88,11 +89,26 @@ const SignupScreen = () => {
         router.push(`/auth/verify?email=${userEmail}`);
       }
     } catch (error: any) {
-      Alert.alert(
-        "Signup Failed",
-        error?.data?.message || "Something went wrong"
-      );
-      console.error("Signup Error:", error);
+      if (error instanceof ZodError) {
+        // Handle validation errors
+        const newErrors: Record<string, string> = {};
+        error.errors.forEach((err) => {
+          const field = err.path[0] as string;
+          newErrors[field] = err.message;
+        });
+        setErrors(newErrors);
+
+        const firstError = error.errors[0];
+        if (firstError) {
+          Alert.alert("Validation Error", firstError.message);
+        }
+      } else {
+        Alert.alert(
+          "Signup Failed",
+          error?.data?.message || "Something went wrong"
+        );
+        console.error("Signup Error:", error);
+      }
     }
   };
 
@@ -167,16 +183,24 @@ const SignupScreen = () => {
                   <InputField
                     label="First Name"
                     value={userFirstName}
-                    onChangeText={setUserFirstName}
+                    onChangeText={(text) => {
+                      setUserFirstName(text);
+                      validateField("userFirstName", text);
+                    }}
                     placeholder="John"
+                    error={errors.userFirstName}
                   />
                 </View>
                 <View className="flex-1">
                   <InputField
                     label="Last Name"
                     value={userLastName}
-                    onChangeText={setUserLastName}
+                    onChangeText={(text) => {
+                      setUserLastName(text);
+                      validateField("userLastName", text);
+                    }}
                     placeholder="Doe"
+                    error={errors.userLastName}
                   />
                 </View>
               </View>
@@ -184,29 +208,37 @@ const SignupScreen = () => {
               <InputField
                 label="Email"
                 value={userEmail}
-                onChangeText={setUserEmail}
-                // onChangeText={(text) => {
-                //   console.log("Email Input:", text);
-                //   setUserEmail(text);
-                // }}
+                onChangeText={(text) => {
+                  setUserEmail(text);
+                  validateField("userEmail", text);
+                }}
                 placeholder="me@gmail.com"
                 keyboardType="email-address"
                 autoCapitalize="none"
+                error={errors.userEmail}
               />
 
               <InputField
                 label="Phone Number"
                 value={userPhone}
-                onChangeText={setUserPhone}
+                onChangeText={(text) => {
+                  setUserPhone(text);
+                  validateField("userPhone", text);
+                }}
                 placeholder="+44 848 9390 8999"
                 keyboardType="phone-pad"
+                error={errors.userPhone}
               />
 
               <InputField
                 label="Address"
                 value={userAddress}
-                onChangeText={setUserAddress}
+                onChangeText={(text) => {
+                  setUserAddress(text);
+                  validateField("userAddress", text);
+                }}
                 placeholder="123 Main Street"
+                error={errors.userAddress}
               />
 
               <View className="flex-row gap-2">
@@ -214,16 +246,24 @@ const SignupScreen = () => {
                   <InputField
                     label="City"
                     value={userCity}
-                    onChangeText={setUserCity}
+                    onChangeText={(text) => {
+                      setUserCity(text);
+                      validateField("userCity", text);
+                    }}
                     placeholder="London"
+                    error={errors.userCity}
                   />
                 </View>
                 <View className="flex-1">
                   <InputField
                     label="Postcode"
                     value={userPostcode}
-                    onChangeText={setUserPostcode}
+                    onChangeText={(text) => {
+                      setUserPostcode(text);
+                      validateField("userPostcode", text);
+                    }}
                     placeholder="S12 2IS"
+                    error={errors.userPostcode}
                   />
                 </View>
               </View>
@@ -231,24 +271,43 @@ const SignupScreen = () => {
               <InputField
                 label="Country"
                 value={userCountry}
-                onChangeText={setUserCountry}
+                onChangeText={(text) => {
+                  setUserCountry(text);
+                  validateField("userCountry", text);
+                }}
                 placeholder="UK"
+                error={errors.userCountry}
               />
 
               <PasswordField
                 label="Create Password"
                 value={userPassword}
-                onChangeText={setUserPassword}
+                onChangeText={(text: string) => {
+                  setUserPassword(text);
+                  validateField("userPassword", text);
+                }}
                 showPassword={showPassword}
                 setShowPassword={setShowPassword}
+                error={errors.userPassword}
               />
 
               <PasswordField
                 label="Confirm Password"
                 value={confirmPassword}
-                onChangeText={setConfirmPassword}
+                onChangeText={(text: string) => {
+                  setConfirmPassword(text);
+                  if (text !== userPassword) {
+                    setErrors((prev) => ({
+                      ...prev,
+                      confirmPassword: "Passwords do not match",
+                    }));
+                  } else {
+                    setErrors((prev) => ({ ...prev, confirmPassword: "" }));
+                  }
+                }}
                 showPassword={showConfirmPassword}
                 setShowPassword={setShowConfirmPassword}
+                error={errors.confirmPassword}
               />
             </View>
 
@@ -269,7 +328,9 @@ const SignupScreen = () => {
               />
 
               <View className="flex-row gap-1 mt-4 justify-center">
-                <Text className="text-neutral-500">Don’t have an account?</Text>
+                <Text className="text-neutral-500">
+                  Already have an account?
+                </Text>
                 <TouchableOpacity
                   onPress={() => router.push("/auth")}
                   activeOpacity={0.7}
@@ -333,14 +394,20 @@ const SignupScreen = () => {
 
 const InputField = ({
   label,
+  error,
   ...props
-}: { label: string } & React.ComponentProps<typeof TextInput>) => (
+}: { label: string; error?: string } & React.ComponentProps<
+  typeof TextInput
+>) => (
   <View className="w-full gap-1">
     <Text className="text-base">{label}</Text>
     <TextInput
-      className="text-base text-neutral-400 rounded-xl border border-neutral-400 py-2 px-3.5 h-[44px]"
+      className={`text-base text-neutral-400 rounded-xl border ${
+        error ? "border-red-500" : "border-neutral-400"
+      } py-2 px-3.5 h-[44px]`}
       {...props}
     />
+    {error ? <Text className="text-red-500 text-xs mt-1">{error}</Text> : null}
   </View>
 );
 
@@ -350,6 +417,7 @@ const PasswordField = ({
   onChangeText,
   showPassword,
   setShowPassword,
+  error,
 }: any) => (
   <View className="w-full gap-1">
     <Text className="text-base">{label}</Text>
@@ -359,7 +427,9 @@ const PasswordField = ({
         value={value}
         onChangeText={onChangeText}
         secureTextEntry={!showPassword}
-        className="text-base text-neutral-400 rounded-xl border border-neutral-400 py-2 pl-3.5 pr-12 h-[44px]"
+        className={`text-base text-neutral-400 rounded-xl border ${
+          error ? "border-red-500" : "border-neutral-400"
+        } py-2 pl-3.5 pr-12 h-[44px]`}
       />
       <TouchableOpacity
         onPress={() => setShowPassword(!showPassword)}
@@ -373,6 +443,7 @@ const PasswordField = ({
         />
       </TouchableOpacity>
     </View>
+    {error ? <Text className="text-red-500 text-xs mt-1">{error}</Text> : null}
   </View>
 );
 
