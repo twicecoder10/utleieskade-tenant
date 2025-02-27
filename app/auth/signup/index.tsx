@@ -185,6 +185,10 @@ const SignupScreen = () => {
                 label="Email"
                 value={userEmail}
                 onChangeText={setUserEmail}
+                // onChangeText={(text) => {
+                //   console.log("Email Input:", text);
+                //   setUserEmail(text);
+                // }}
                 placeholder="me@gmail.com"
                 keyboardType="email-address"
                 autoCapitalize="none"

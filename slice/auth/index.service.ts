@@ -45,7 +45,7 @@ export const authApi = createApi({
           await AsyncStorage.setItem("token", token);
           await AsyncStorage.setItem("isLoggedIn", "true");
           await AsyncStorage.setItem("role", role);
-          dispatch(updateUser(apiResponse?.data?.data)); // Update user state
+          dispatch(updateUser(apiResponse?.data?.data)); 
         } catch (error) {
           console.error("Register Error:", error);
         }
