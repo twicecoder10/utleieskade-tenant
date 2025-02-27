@@ -4,7 +4,16 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import Header from "@/components/ui/Header";
 import { AntDesign, Feather } from "@expo/vector-icons";
 
+import { legals } from "@/components/data";
+
+import {
+  useGetTenantSettingsQuery,
+  useUpdateTenantSettingsQuery,
+} from "@/slice/tenants/index.service";
+
 const PrivacyPolicyScreen = () => {
+  const [openIndex, setOpenIndex] = useState<number | null>(null);
+
   const [consents, setConsents] = useState({
     essentialCookies: true,
     thirdPartySharing: false,
@@ -82,7 +91,7 @@ const PrivacyPolicyScreen = () => {
               description="Required for basic app functionality"
               value={consents.essentialCookies}
               onToggle={() => handleToggle("essentialCookies")}
-              disabled={true}
+              // disabled={true}
             />
 
             <ConsentItem
@@ -95,24 +104,31 @@ const PrivacyPolicyScreen = () => {
         </View>
 
         <View className="flex flex-col gap-4 mt-6">
-          <TouchableOpacity className="flex-row items-center justify-between p-4 border border-[#E2E2E2] rounded-xl">
-            <View className="flex-row items-center gap-3">
-              <Text className="text-base">Your GDPR Rights</Text>
-            </View>
-            <AntDesign name="plus" size={16} color="#475467" />
-          </TouchableOpacity>
-          <TouchableOpacity className="flex-row items-center justify-between p-4 border border-[#E2E2E2] rounded-xl">
-            <View className="flex-row items-center gap-3">
-              <Text className="text-base">Privacy Policy</Text>
-            </View>
-            <AntDesign name="plus" size={16} color="#475467" />
-          </TouchableOpacity>
-          <TouchableOpacity className="flex-row items-center justify-between p-4 border border-[#E2E2E2] rounded-xl">
-            <View className="flex-row items-center gap-3">
-              <Text className="text-base">Contact DPO</Text>
-            </View>
-            <AntDesign name="plus" size={16} color="#475467" />
-          </TouchableOpacity>
+          {legals.map((legal, index) => (
+            <TouchableOpacity
+              key={index}
+              onPress={() => setOpenIndex(openIndex === index ? null : index)}
+              className="p-4 border border-[#E2E2E2] rounded-xl"
+              activeOpacity={0.7}
+            >
+              <View className="flex-row items-center justify-between">
+                <Text className="text-base font-medium text-neutral-900 flex-1 pr-4">
+                  {legal.label}
+                </Text>
+                <AntDesign
+                  name={openIndex === index ? "minus" : "plus"}
+                  size={16}
+                  color="#475467"
+                />
+              </View>
+
+              {openIndex === index && (
+                <Text className="mt-2 text-sm text-neutral-500">
+                  {legal.content}
+                </Text>
+              )}
+            </TouchableOpacity>
+          ))}
         </View>
       </ScrollView>
     </SafeAreaView>
