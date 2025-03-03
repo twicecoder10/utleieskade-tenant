@@ -1,5 +1,12 @@
-import { View, Text, ScrollView, TouchableOpacity, Switch } from "react-native";
-import React, { useState } from "react";
+import {
+  View,
+  Text,
+  ScrollView,
+  TouchableOpacity,
+  Switch,
+  Alert,
+} from "react-native";
+import React, { useState, useEffect } from "react";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Header from "@/components/ui/Header";
 import { AntDesign, Feather } from "@expo/vector-icons";
@@ -8,22 +15,76 @@ import { legals } from "@/components/data";
 
 import {
   useGetTenantSettingsQuery,
-  useUpdateTenantSettingsQuery,
+  useUpdateTenantSettingsMutation,
 } from "@/slice/tenants/index.service";
 
 const PrivacyPolicyScreen = () => {
   const [openIndex, setOpenIndex] = useState<number | null>(null);
 
+  // Initial consent state
   const [consents, setConsents] = useState({
     essentialCookies: true,
-    thirdPartySharing: false,
+    thirdPartySharing: true,
   });
 
-  const handleToggle = (key: keyof typeof consents) => {
-    setConsents((prev) => ({
-      ...prev,
-      [key]: !prev[key],
-    }));
+  const {
+    data: tenantSettings,
+    isLoading,
+    refetch,
+  } = useGetTenantSettingsQuery({});
+
+  const [updateSettings, { isLoading: isUpdating }] =
+    useUpdateTenantSettingsMutation();
+
+  console.log("tenantSettings:", tenantSettings);
+
+  useEffect(() => {
+    // Backend returns privacySecurity, but we need to adapt to that structure
+    if (tenantSettings?.privacySecurity) {
+      setConsents({
+        essentialCookies:
+          tenantSettings.privacySecurity.essentialCookies ?? true,
+        thirdPartySharing:
+          tenantSettings.privacySecurity.thirdPartySharing ?? false,
+      });
+    }
+  }, [tenantSettings]);
+
+  const handleToggle = async (key: keyof typeof consents) => {
+    const newConsents = {
+      ...consents,
+      [key]: !consents[key],
+    };
+
+    setConsents(newConsents);
+
+    try {
+      console.log("Updating settings with:", {
+        privacyPolicy: {
+          essentialCookies: newConsents.essentialCookies,
+          thirdPartySharing: newConsents.thirdPartySharing,
+        },
+      });
+
+      // Send the request to update settings
+      await updateSettings({
+        privacyPolicy: {
+          essentialCookies: newConsents.essentialCookies,
+          thirdPartySharing: newConsents.thirdPartySharing,
+        },
+      }).unwrap();
+
+      // Refetch the settings
+      refetch();
+    } catch (error) {
+      // Revert to the previous state if the update fails
+      setConsents(consents);
+      console.error("Failed to update privacy settings:", error);
+      Alert.alert(
+        "Error",
+        "Failed to update privacy settings. Please try again."
+      );
+    }
   };
 
   interface ConsentItemProps {
@@ -32,6 +93,7 @@ const PrivacyPolicyScreen = () => {
     value: boolean;
     onToggle: () => void;
     disabled?: boolean;
+    isLoading?: boolean;
   }
 
   const ConsentItem = ({
@@ -40,6 +102,7 @@ const PrivacyPolicyScreen = () => {
     value,
     onToggle,
     disabled = false,
+    isLoading = false,
   }: ConsentItemProps) => (
     <View className="flex flex-row items-center justify-between py-2">
       <View className="flex-1 mr-4">
@@ -49,7 +112,7 @@ const PrivacyPolicyScreen = () => {
       <Switch
         value={value}
         onValueChange={onToggle}
-        disabled={disabled}
+        disabled={disabled || isLoading}
         className="transform scale-100"
         trackColor={{ false: "#D1D5DB", true: "#E2E2E2" }}
         thumbColor={value ? "#2387D4" : "#F3F4F6"}
@@ -91,7 +154,7 @@ const PrivacyPolicyScreen = () => {
               description="Required for basic app functionality"
               value={consents.essentialCookies}
               onToggle={() => handleToggle("essentialCookies")}
-              // disabled={true}
+              isLoading={isLoading || isUpdating}
             />
 
             <ConsentItem
@@ -99,6 +162,7 @@ const PrivacyPolicyScreen = () => {
               description="Share your data with our partners and payment gateways."
               value={consents.thirdPartySharing}
               onToggle={() => handleToggle("thirdPartySharing")}
+              isLoading={isLoading || isUpdating}
             />
           </View>
         </View>

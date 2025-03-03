@@ -62,3 +62,21 @@ export const drafts = [
     isEmergency: true,
   },
 ];
+
+export const legals = [
+  {
+    label: "Your GDPR Rights",
+    content:
+      "Under GDPR, you have several rights including the right to access, rectify, and erase your personal data. You can also request data portability and object to data processing.",
+  },
+  {
+    label: "Privacy Policy",
+    content:
+      "Our privacy policy outlines how we collect, use, and protect your personal information. We are committed to maintaining the confidentiality and security of your data in compliance with applicable laws.",
+  },
+  {
+    label: "Contact DPO",
+    content:
+      "For any privacy-related concerns or requests, you can contact our Data Protection Officer at dpo@example.com or through our secure contact form on the website.",
+  },
+];
