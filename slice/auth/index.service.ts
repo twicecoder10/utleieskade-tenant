@@ -91,8 +91,8 @@ export const authApi = createApi({
           const apiResponse = await queryFulfilled;
           dispatch(updateUser(apiResponse?.data?.data)); // Update user state
           await AsyncStorage.setItem(
-            "username",
-            apiResponse?.data?.data?.handle
+                        "username",
+            apiResponse?.data?.data?.userFirstName ?? "Guest"
           );
         } catch (error) {
           console.error("GetUser Error:", error);
