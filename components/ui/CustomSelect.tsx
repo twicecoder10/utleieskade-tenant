@@ -5,9 +5,9 @@ import RNPickerSelect from "react-native-picker-select";
 
 interface SelectProps {
   label?: string;
-  items: { label: string; value: string | number }[];
-  value: string | number;
-  onValueChange: (value: string | number) => void;
+  items: { label: string; value: string }[];
+  value: string;
+  onValueChange: (value: string) => void;
   placeholder?: string;
 }
 
