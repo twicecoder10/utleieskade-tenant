@@ -101,6 +101,14 @@ function RootLayout() {
               name="reports/saved-drafts"
               options={{ headerShown: false }}
             />
+            <Stack.Screen
+              name="reports/report-preview"
+              options={{ headerShown: false }}
+            />
+            <Stack.Screen
+              name="reports/assessment-payment"
+              options={{ headerShown: false }}
+            />
             <Stack.Screen name="+not-found" />
           </Stack>
         )}
