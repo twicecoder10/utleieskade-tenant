@@ -11,8 +11,9 @@ import { AntDesign, EvilIcons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import CustomSelect from "@/components/ui/CustomSelect";
 import Button from "@/components/ui/Button";
+import Header from "@/components/ui/Header";
 
-const ReportDamage = () => {
+const ReportPreview = () => {
   const [date, setDate] = useState("06/01/2024");
   const [selectedValue, setSelectedValue] = useState<string | number>("");
   const [isOverviewOpen, setIsOverviewOpen] = useState(false);
@@ -31,25 +32,9 @@ const ReportDamage = () => {
   return (
     <SafeAreaView className="flex-1 p-4 pb-6 bg-white">
       <ScrollView className="" showsVerticalScrollIndicator={false}>
-        <View className="w-full pt-5 pb-3 bg-white flex-row justify-between items-center">
-          <View className="flex-row items-center gap-4">
-            <TouchableOpacity onPress={() => router.back()}>
-              <EvilIcons name="chevron-left" size={36} color="#98A2B3" />
-            </TouchableOpacity>
+        <Header title="Report Preview" showBack />
 
-            <Text className="text-2xl text-neutral-900 font-semibold">
-              Report Damage
-            </Text>
-          </View>
-
-          <TouchableOpacity
-            onPress={() => router.push("/reports/saved-drafts")}
-          >
-            <Text className="font-medium text-primary-500">Saved drafts</Text>
-          </TouchableOpacity>
-        </View>
-
-        <View className="mt-6">
+        <View className="mt-4">
           <Text className="text-lg font-semibold text-neutral-900">
             Location Details
           </Text>
@@ -332,16 +317,24 @@ const ReportDamage = () => {
             </View>
           </View>
 
-          <Button
-            label="Submit Report"
-            onPress={() => router.push("/reports/report-preview")}
-            style="bg-primary-500 p-3 rounded-full w-full mt-10"
-            textStyle="font-bold text-white text-base font-medium"
-          />
+          <View className="mt-10 gap-3">
+            <Button
+              label="Submit Report"
+              onPress={() => console.log("Submit Report")}
+              style="bg-primary-500 p-3 rounded-full w-full"
+              textStyle="font-bold text-white text-base font-medium"
+            />
+            <Button
+              label="Save draft"
+              onPress={() => console.log("Save draft")}
+              style="bg-white border border-[#E2E2E2] p-3 rounded-full w-full"
+              textStyle="font-bold text-neutral-700 text-base font-medium"
+            />
+          </View>
         </View>
       </ScrollView>
     </SafeAreaView>
   );
 };
 
-export default ReportDamage;
+export default ReportPreview;
