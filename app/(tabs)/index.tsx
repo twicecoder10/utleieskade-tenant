@@ -7,26 +7,74 @@ import {
   ScrollView,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { AntDesign, Ionicons, MaterialIcons } from "@expo/vector-icons";
+import { AntDesign, Ionicons } from "@expo/vector-icons";
 import Button from "@/components/ui/Button";
 import { CaseCard } from "@/components/ui/CaseCard";
 import { useState } from "react";
 import { cases, faqs } from "@/components/data";
 import { useGetUserQuery } from "@/slice/auth/index.service";
+import {
+  useGetDashboardDataQuery,
+  useGetTenantCasesQuery,
+} from "@/slice/tenants/index.service";
+import { router } from "expo-router";
 
 export default function HomeScreen() {
   const [openIndex, setOpenIndex] = useState<number | null>(null);
 
-  const { data, isLoading, error } = useGetUserQuery({});
+  const {
+    data: userData,
+    isLoading: userLoading,
+    error: userError,
+  } = useGetUserQuery({});
+  const {
+    data: dashboardData,
+    isLoading: dashboardLoading,
+    error: dashboardError,
+  } = useGetDashboardDataQuery({});
+  const {
+    data: tenantCases,
+    isLoading: tenantCasesLoading,
+    error: tenantCasesError,
+  } = useGetTenantCasesQuery({});
 
-  // if (isLoading) return <Text>Loading...</Text>;
-  // if (error) return <Text>Error fetching data!</Text>;
+  const activeCases = dashboardData?.activeCases?.count || 0;
+  const requiresAttention = dashboardData?.activeCases?.requiresAttention || 0;
+  const resolvedIssues = dashboardData?.resolvedIssues?.count || 0;
 
-  const user = data?.data || {};
+  const user = userData?.data || {};
+  const dashboard = dashboardData?.data || {};
+  const tenants = tenantCases?.data || {};
+
+  console.log("Dashboard Data:", dashboard);
+  console.log("Tenant Cases:", tenants);
 
   return (
     <SafeAreaView className="flex-1 p-4 pb-6 bg-white">
       <ScrollView className="" showsVerticalScrollIndicator={false}>
+        {/* Display Error Messages */}
+        {userError && (
+          <View className="bg-red-50 p-3 rounded-lg mb-4">
+            <Text className="text-red-700 text-sm">
+              Error fetching user data
+            </Text>
+          </View>
+        )}
+        {dashboardError && (
+          <View className="bg-red-50 p-3 rounded-lg mb-4">
+            <Text className="text-red-700 text-sm">
+              Error fetching dashboard data
+            </Text>
+          </View>
+        )}
+        {tenantCasesError && (
+          <View className="bg-red-50 p-3 rounded-lg mb-4">
+            <Text className="text-red-700 text-sm">
+              Error fetching tenant cases
+            </Text>
+          </View>
+        )}
+
         {/* Location */}
         <View className="flex-row items-center justify-between mt-2">
           <View className="flex-row items-center">
@@ -96,9 +144,12 @@ export default function HomeScreen() {
             </Text>
             <AntDesign name="warning" size={24} color="#B91C1C" />
           </View>
-          <Text className="mt-2 text-3xl font-bold text-neutral-900">12</Text>
+          <Text className="mt-2 text-3xl font-bold text-neutral-900">
+            {activeCases}
+          </Text>
+
           <Text className="mt-1 text-sm text-neutral-500">
-            4 requires attention
+            {requiresAttention} requires attention
           </Text>
         </View>
 
@@ -114,7 +165,10 @@ export default function HomeScreen() {
               color="#15803D"
             />
           </View>
-          <Text className="mt-2 text-3xl font-bold text-neutral-900">20</Text>
+          <Text className="mt-2 text-3xl font-bold text-neutral-900">
+            {resolvedIssues}
+          </Text>
+
           <Text className="mt-1 text-sm text-neutral-500">Last 30 days</Text>
         </View>
 
@@ -126,10 +180,14 @@ export default function HomeScreen() {
             </Text>
             <AntDesign name="calendar" size={24} color="#2387D4" />
           </View>
-          <Text className="mt-2 text-3xl font-bold text-neutral-900">3</Text>
+          <Text className="mt-2 text-3xl font-bold text-neutral-900">
+            {dashboard.scheduledInspections || 0}
+          </Text>
           <View className="flex-row gap-1 items-center mt-1">
             <Text className="text-sm text-primary-500">Next:</Text>
-            <Text className="text-sm text-neutral-500">Tomorrow 10 AM</Text>
+            <Text className="text-sm text-neutral-500">
+              {dashboard.nextInspection || "No upcoming inspections"}
+            </Text>
           </View>
         </View>
 
@@ -142,14 +200,14 @@ export default function HomeScreen() {
           <View className="px-6 flex flex-col gap-2">
             <Button
               label="Report New Case"
-              onPress={() => console.log("Reported Case")}
+              onPress={() => router.push("/reports/report-damage")}
               iconImage={require("@/assets/images/camera-icon.png")}
               style="bg-primary-500 p-3 rounded-full w-full"
               textStyle="font-bold text-white text-base font-medium"
             />
             <Button
               label="View All Cases"
-              onPress={() => console.log("All Cases")}
+              onPress={() => router.push("/reports/all-cases")}
               iconImage={require("@/assets/images/document-icon.png")}
               style="bg-white border border-[#E2E2E2] p-3 rounded-full w-full"
               textStyle="font-bold text-neutral-700 text-base font-medium"
@@ -163,15 +221,25 @@ export default function HomeScreen() {
             <Text className="text-lg font-semibold text-neutral-900">
               Submitted Cases
             </Text>
-            <TouchableOpacity>
+            <TouchableOpacity onPress={() => router.push("/reports/all-cases")}>
               <Text className="text-sm text-blue-500">View all</Text>
             </TouchableOpacity>
           </View>
 
           <View className="flex flex-col gap-4">
-            {cases.map((caseItem, index) => (
-              <CaseCard key={index} {...caseItem} isRecent={false} />
-            ))}
+            {tenantCasesLoading ? (
+              <Text className="text-sm text-gray-500">Loading cases...</Text>
+            ) : tenantCasesError ? (
+              <Text className="text-sm text-red-500">Error fetching cases</Text>
+            ) : tenants?.length > 0 ? (
+              tenants.map((caseItem, index: number) => (
+                <CaseCard key={index} {...caseItem} isRecent={false} />
+              ))
+            ) : (
+              <Text className="text-base text-neutral-500 text-center">
+                No submitted cases found
+              </Text>
+            )}
           </View>
         </View>
 
