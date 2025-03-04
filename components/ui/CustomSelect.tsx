@@ -8,6 +8,7 @@ interface SelectProps {
   items: { label: string; value: string | number }[];
   value: string | number;
   onValueChange: (value: string | number) => void;
+  placeholder?: string;
 }
 
 const CustomSelect: React.FC<SelectProps> = ({
@@ -15,6 +16,7 @@ const CustomSelect: React.FC<SelectProps> = ({
   items,
   value,
   onValueChange,
+  placeholder = "Select an option...",
 }) => {
   return (
     <View className="mb-4">
@@ -46,7 +48,7 @@ const CustomSelect: React.FC<SelectProps> = ({
               },
             }}
             useNativeAndroidPickerStyle={false}
-            placeholder={{ label: "Select an option...", value: null }}
+            placeholder={{ label: placeholder, value: null }}
           />
         </View>
         <Ionicons name="chevron-down" size={16} color="#D0D5DD" />
