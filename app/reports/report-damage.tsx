@@ -1,3 +1,4 @@
+import React, { useState } from "react";
 import {
   View,
   Text,
@@ -5,28 +6,152 @@ import {
   TouchableOpacity,
   TextInput,
 } from "react-native";
-import React, { useState } from "react";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { AntDesign, EvilIcons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import CustomSelect from "@/components/ui/CustomSelect";
 import Button from "@/components/ui/Button";
+import * as ImagePicker from "expo-image-picker";
+
+import { useReportCasesMutation } from "@/slice/cases/index.service";
+import { useUploadFileMutation } from "@/slice/files/index.service";
+import { Alert } from "react-native";
 
 const ReportDamage = () => {
-  const [date, setDate] = useState("06/01/2024");
-  const [selectedValue, setSelectedValue] = useState<string | number>("");
+  const [photos, setPhotos] = useState<
+    { photoType: string; photoUrl: string }[]
+  >([]);
+
+  const [date, setDate] = useState(new Date().toLocaleDateString());
+  const [selectedValue, setSelectedValue] = useState<string>("");
   const [isOverviewOpen, setIsOverviewOpen] = useState(false);
   const [isCloseUpOpen, setIsCloseUpOpen] = useState(false);
   const [isContextOpen, setIsContextOpen] = useState(false);
+  const [buildingNumber, setBuildingNumber] = useState("");
+  const [damageLocation, setDamageLocation] = useState<string>("");
+  const [damageType, setDamageType] = useState<string>("");
+  const [causeOfDamage, setCauseOfDamage] = useState<string>("");
+  const [description, setDescription] = useState("");
 
-  const renderUploadBox = () => (
-    <TouchableOpacity className="mt-4 border-dotted bg-neutral-50 border-2 border-gray-300 rounded-[14px] py-12 px-6 items-center">
+  const [reportCases] = useReportCasesMutation();
+  const [uploadFile] = useUploadFileMutation();
+
+  const renderUploadBox = (photoType: string) => (
+    <TouchableOpacity
+      className="mt-4 border-dotted bg-neutral-50 border-2 border-gray-300 rounded-[14px] py-12 px-6 items-center"
+      onPress={() => handleImageUpload(photoType)}
+    >
       <AntDesign name="upload" size={24} color="#98A2B3" />
       <Text className="text-sm text-neutral-500 mt-3">
         Tap to upload photos (max 10 photos)
       </Text>
     </TouchableOpacity>
   );
+
+  const handleImageUpload = async (photoType: string) => {
+    try {
+      // Request permission to access the media library
+      const { status } =
+        await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (status !== "granted") {
+        Alert.alert(
+          "Error",
+          "Sorry, we need camera roll permissions to make this work!"
+        );
+        return;
+      }
+
+      // Launch the image picker
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [4, 3],
+        quality: 1,
+        selectionLimit: 1,
+      });
+
+      if (!result.canceled && result.assets.length > 0) {
+        const selectedImage = result.assets[0];
+
+        if (!selectedImage.uri) {
+          Alert.alert(
+            "Error",
+            "Selected image is missing required properties."
+          );
+          return;
+        }
+
+        // Create FormData to send binary file
+        const formData = new FormData();
+        formData.append("file", {
+          uri: selectedImage.uri,
+          type: "image/jpeg", // or the actual mime type
+          name: selectedImage.fileName || "photo.jpg",
+        } as any);
+
+        // Upload the binary file
+        const uploadResponse = await uploadFile(formData).unwrap();
+
+        // Add the uploaded photo to the photos state
+        const newPhoto = {
+          photoType: photoType,
+          photoUrl: uploadResponse.filePath,
+        };
+
+        setPhotos((prevPhotos) => {
+          // Filter out existing photos of the same type to maintain the limit
+          const filteredPhotos = prevPhotos.filter(
+            (photo) => photo.photoType !== photoType
+          );
+          return [...filteredPhotos, newPhoto];
+        });
+
+        Alert.alert("Success", "Image uploaded successfully!");
+      }
+    } catch (error) {
+      console.error("Failed to upload file:", error);
+      Alert.alert("Error", "Failed to upload image. Please try again.");
+    }
+  };
+
+  const handleSubmit = async () => {
+    if (
+      !buildingNumber ||
+      !damageLocation ||
+      !damageType ||
+      !description ||
+      !date
+    ) {
+      Alert.alert("Error", "Please fill out all required fields.");
+      return;
+    }
+
+    const caseData = {
+      propertyId: "8d55184c-2039-4d58-9f6f-3b2452589aab",
+      caseDescription: description,
+      caseUrgencyLevel: "high",
+      buildingNumber: buildingNumber,
+      damages: [
+        {
+          damageLocation: damageLocation,
+          damageType: damageType,
+          damageDescription: description,
+          damageDate: date,
+          photos: photos,
+        },
+      ],
+    };
+
+    try {
+      const response = await reportCases(caseData).unwrap();
+      console.log("Case reported successfully:", response);
+      Alert.alert("Success", "Case reported successfully!");
+      router.push("/reports/report-preview");
+    } catch (error) {
+      console.error("Failed to report case:", error);
+      Alert.alert("Error", "Failed to report case. Please try again.");
+    }
+  };
 
   return (
     <SafeAreaView className="flex-1 p-4 pb-6 bg-white">
@@ -58,7 +183,6 @@ const ReportDamage = () => {
             <View className="">
               <Text className="mb-1 text-sm text-neutral-400">Property</Text>
               <CustomSelect
-                // label="Choose an option"
                 items={[{ label: "Hills Apartment", value: "Hills Apartment" }]}
                 value={selectedValue}
                 onValueChange={setSelectedValue}
@@ -72,6 +196,8 @@ const ReportDamage = () => {
               <TextInput
                 className="p-3 border border-[#E2E2E2] rounded-lg text-gray-400"
                 placeholder="eg: building A"
+                value={buildingNumber}
+                onChangeText={setBuildingNumber}
                 multiline={false}
                 textAlignVertical="top"
               />
@@ -91,8 +217,8 @@ const ReportDamage = () => {
                   { label: "Exterior", value: "Exterior" },
                   { label: "Other", value: "Other" },
                 ]}
-                value={selectedValue}
-                onValueChange={setSelectedValue}
+                value={damageLocation}
+                onValueChange={setDamageLocation}
               />
             </View>
           </View>
@@ -124,8 +250,8 @@ const ReportDamage = () => {
                   },
                   { label: "Pest Problem", value: "Pest Problem" },
                 ]}
-                value={selectedValue}
-                onValueChange={setSelectedValue}
+                value={damageType}
+                onValueChange={setDamageType}
               />
             </View>
 
@@ -142,8 +268,8 @@ const ReportDamage = () => {
                   { label: "External Impact", value: "External Impact" },
                   { label: "Leakage", value: "Leakage" },
                 ]}
-                value={selectedValue}
-                onValueChange={setSelectedValue}
+                value={causeOfDamage}
+                onValueChange={setCauseOfDamage}
               />
             </View>
 
@@ -153,6 +279,8 @@ const ReportDamage = () => {
               <TextInput
                 className="p-3 border border-[#E2E2E2] rounded-lg text-gray-400"
                 placeholder="Describe the damage in detail"
+                value={description}
+                onChangeText={setDescription}
                 multiline={true}
                 numberOfLines={4}
                 textAlignVertical="top"
@@ -198,7 +326,11 @@ const ReportDamage = () => {
                       Overview shots
                     </Text>
                     <Text className="text-sm text-gray-500 px-2 py-1 border border-[#E2E2E2] rounded-lg">
-                      0 / 1
+                      {
+                        photos.filter((photo) => photo.photoType === "overview")
+                          .length
+                      }{" "}
+                      / 1
                     </Text>
                   </View>
 
@@ -209,7 +341,7 @@ const ReportDamage = () => {
                   />
                 </View>
 
-                {isOverviewOpen && renderUploadBox()}
+                {isOverviewOpen && renderUploadBox("overview")}
               </TouchableOpacity>
 
               {/* Close-up Details */}
@@ -224,7 +356,11 @@ const ReportDamage = () => {
                       Close-up Details
                     </Text>
                     <Text className="text-sm text-gray-500 px-2 py-1 border border-[#E2E2E2] rounded-lg">
-                      0 / 2
+                      {
+                        photos.filter((photo) => photo.photoType === "closeup")
+                          .length
+                      }{" "}
+                      / 2
                     </Text>
                   </View>
 
@@ -235,7 +371,7 @@ const ReportDamage = () => {
                   />
                 </View>
 
-                {isCloseUpOpen && renderUploadBox()}
+                {isCloseUpOpen && renderUploadBox("closeup")}
               </TouchableOpacity>
 
               {/* Context Shots */}
@@ -250,7 +386,11 @@ const ReportDamage = () => {
                       Context shots
                     </Text>
                     <Text className="text-sm text-gray-500 px-2 py-1 border border-[#E2E2E2] rounded-lg">
-                      0 / 1
+                      {
+                        photos.filter((photo) => photo.photoType === "context")
+                          .length
+                      }{" "}
+                      / 1
                     </Text>
                   </View>
 
@@ -282,19 +422,10 @@ const ReportDamage = () => {
                         • Show the scale of damage
                       </Text>
                     </View>
-                    {renderUploadBox()}
+                    {renderUploadBox("context")}
                   </View>
                 )}
               </TouchableOpacity>
-
-              <Button
-                label="Add another damage"
-                onPress={() => console.log("Add Another damage")}
-                iconImage={require("@/assets/images/add-circle.png")}
-                style="bg-white p-3 w-full mt-8"
-                textStyle="!font-medium text-primary-500 text-base"
-                iconSize={16}
-              />
             </View>
           </View>
 
@@ -334,7 +465,7 @@ const ReportDamage = () => {
 
           <Button
             label="Submit Report"
-            onPress={() => router.push("/reports/report-preview")}
+            onPress={handleSubmit}
             style="bg-primary-500 p-3 rounded-full w-full mt-10"
             textStyle="font-bold text-white text-base font-medium"
           />

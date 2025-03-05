@@ -27,11 +27,13 @@ export default function HomeScreen() {
     isLoading: userLoading,
     error: userError,
   } = useGetUserQuery({});
+
   const {
     data: dashboardData,
     isLoading: dashboardLoading,
     error: dashboardError,
   } = useGetDashboardDataQuery({});
+
   const {
     data: tenantCases,
     isLoading: tenantCasesLoading,
@@ -46,8 +48,8 @@ export default function HomeScreen() {
   const dashboard = dashboardData?.data || {};
   const tenants = tenantCases?.data || {};
 
-  console.log("Dashboard Data:", dashboard);
-  console.log("Tenant Cases:", tenants);
+  // console.log("Dashboard Data:", dashboard);
+  // console.log("Tenant Cases:", tenants);
 
   return (
     <SafeAreaView className="flex-1 p-4 pb-6 bg-white">
@@ -228,16 +230,18 @@ export default function HomeScreen() {
 
           <View className="flex flex-col gap-4">
             {tenantCasesLoading ? (
-              <Text className="text-sm text-gray-500">Loading cases...</Text>
+              <Text className="text-sm text-gray-500">Loading reports...</Text>
             ) : tenantCasesError ? (
-              <Text className="text-sm text-red-500">Error fetching cases</Text>
+              <Text className="text-sm text-red-500">
+                Error fetching reports
+              </Text>
             ) : tenants?.length > 0 ? (
               tenants.map((caseItem, index: number) => (
                 <CaseCard key={index} {...caseItem} isRecent={false} />
               ))
             ) : (
               <Text className="text-base text-neutral-500 text-center">
-                No submitted cases found
+                No submitted reports found
               </Text>
             )}
           </View>

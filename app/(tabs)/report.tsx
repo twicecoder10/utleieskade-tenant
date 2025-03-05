@@ -10,10 +10,32 @@ import {
   TextInput,
   TouchableOpacity,
 } from "react-native";
+import {
+  useGetDashboardDataQuery,
+  useGetTenantCasesQuery,
+} from "@/slice/tenants/index.service";
 
 import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function ReportScreen() {
+  const {
+    data: dashboardData,
+    isLoading: dashboardLoading,
+    error: dashboardError,
+  } = useGetDashboardDataQuery({});
+
+  const {
+    data: tenantCases,
+    isLoading: tenantCasesLoading,
+    error: tenantCasesError,
+  } = useGetTenantCasesQuery({});
+
+  const activeCases = dashboardData?.activeCases?.count || 0;
+  const requiresAttention = dashboardData?.activeCases?.requiresAttention || 0;
+  const resolvedIssues = dashboardData?.resolvedIssues?.count || 0;
+
+  const tenants = tenantCases?.data || {};
+
   return (
     <SafeAreaView className="flex-1 p-4 pb-6 bg-white">
       <ScrollView className="" showsVerticalScrollIndicator={false}>
@@ -70,9 +92,12 @@ export default function ReportScreen() {
             </Text>
             <AntDesign name="warning" size={24} color="#B91C1C" />
           </View>
-          <Text className="mt-2 text-3xl font-bold text-neutral-900">12</Text>
+          <Text className="mt-2 text-3xl font-bold text-neutral-900">
+            {activeCases}
+          </Text>
+
           <Text className="mt-1 text-sm text-neutral-500">
-            4 requires attention
+            {requiresAttention} requires attention
           </Text>
         </View>
 
@@ -88,7 +113,10 @@ export default function ReportScreen() {
               color="#15803D"
             />
           </View>
-          <Text className="mt-2 text-3xl font-bold text-neutral-900">20</Text>
+          <Text className="mt-2 text-3xl font-bold text-neutral-900">
+            {resolvedIssues}
+          </Text>
+
           <Text className="mt-1 text-sm text-neutral-500">Last 30 days</Text>
         </View>
 
@@ -103,10 +131,28 @@ export default function ReportScreen() {
             </TouchableOpacity>
           </View>
 
-          <View className="flex flex-col gap-4">
+          {/* <View className="flex flex-col gap-4">
             {cases.map((caseItem, index) => (
               <CaseCard key={index} {...caseItem} isRecent={true} />
             ))}
+          </View> */}
+
+          <View className="flex flex-col gap-4">
+            {tenantCasesLoading ? (
+              <Text className="text-sm text-gray-500">Loading reports...</Text>
+            ) : tenantCasesError ? (
+              <Text className="text-sm text-red-500">
+                Error fetching reports
+              </Text>
+            ) : tenants?.length > 0 ? (
+              tenants.map((caseItem, index: number) => (
+                <CaseCard key={index} {...caseItem} isRecent={false} />
+              ))
+            ) : (
+              <Text className="text-base text-neutral-500 text-center">
+                No recent reports
+              </Text>
+            )}
           </View>
         </View>
       </ScrollView>

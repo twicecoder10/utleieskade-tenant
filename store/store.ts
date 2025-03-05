@@ -1,4 +1,7 @@
 import { authApi } from "@/slice/auth/index.service";
+import { casesApi } from "@/slice/cases/index.service";
+import { chatApi } from "@/slice/chats/index.service";
+import { tenantsApi } from "@/slice/tenants/index.service";
 import userSlice from "@/slice/userSlice";
 import { configureStore } from "@reduxjs/toolkit";
 import { TypedUseSelectorHook, useDispatch, useSelector } from "react-redux";
@@ -7,10 +10,13 @@ export const store = configureStore({
   reducer: {
     user: userSlice.reducer,
     [authApi.reducerPath]: authApi.reducer,
+    [tenantsApi.reducerPath]: tenantsApi.reducer,
+    [casesApi.reducerPath]: casesApi.reducer,
+    [chatApi.reducerPath]: chatApi.reducer,
   },
 
   middleware: (getDefaultMiddleware) =>
-    getDefaultMiddleware().concat([authApi.middleware]),
+    getDefaultMiddleware().concat([authApi.middleware, tenantsApi.middleware, casesApi.middleware, chatApi.middleware]),
 });
 
 export type RootState = ReturnType<typeof store.getState>;
