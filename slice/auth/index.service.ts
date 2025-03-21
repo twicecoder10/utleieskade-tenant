@@ -13,7 +13,7 @@ export const authApi = createApi({
     // Login Endpoint
     login: builder.mutation({
       query: (body) => ({
-        url: "/login/tenant",
+        url: "/users/login/tenant",
         method: "POST",
         body,
       }),
@@ -45,7 +45,7 @@ export const authApi = createApi({
           await AsyncStorage.setItem("token", token);
           await AsyncStorage.setItem("isLoggedIn", "true");
           await AsyncStorage.setItem("role", role);
-          dispatch(updateUser(apiResponse?.data?.data)); 
+          dispatch(updateUser(apiResponse?.data?.data));
         } catch (error) {
           console.error("Register Error:", error);
         }
@@ -91,7 +91,7 @@ export const authApi = createApi({
           const apiResponse = await queryFulfilled;
           dispatch(updateUser(apiResponse?.data?.data)); // Update user state
           await AsyncStorage.setItem(
-                        "username",
+            "username",
             apiResponse?.data?.data?.userFirstName ?? "Guest"
           );
         } catch (error) {
@@ -160,3 +160,4 @@ export const {
   useResendOtpMutation,
   useVerifyOtpMutation,
 } = authApi;
+

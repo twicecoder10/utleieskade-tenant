@@ -59,7 +59,8 @@ const SignInScreen = () => {
 
       Alert.alert(
         "Login Failed",
-        error?.data?.message || "Invalid email or password. Please try again.",
+        // error?.data?.message || "Invalid email or password. Please try again.",
+        error?.data?.message || "An error occurred. Please try again.",
         [{ text: "OK" }]
       );
 
@@ -221,3 +222,4 @@ const SignInScreen = () => {
 };
 
 export default SignInScreen;
+
