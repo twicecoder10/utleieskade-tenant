@@ -101,7 +101,7 @@ const SignInScreen = () => {
                   placeholder="Email Address"
                   value={userEmail}
                   onChangeText={setUserEmail}
-                  className="text-base text-neutral-400 rounded-xl border border-neutral-400 py-2 px-3.5 h-[44px] focus:border-black"
+                  className="text-base text-black rounded-xl border border-neutral-400 py-2 pl-3.5 pr-12 h-[44px] focus:border-black"
                   keyboardType="email-address"
                   autoCapitalize="none"
                 />
@@ -117,7 +117,7 @@ const SignInScreen = () => {
                     value={userPassword}
                     onChangeText={setUserPassword}
                     secureTextEntry={!showPassword}
-                    className="text-base text-neutral-400 rounded-xl border border-neutral-400 py-2 pl-3.5 pr-12 h-[44px] focus:border-black"
+                    className="text-base text-black rounded-xl border border-neutral-400 py-2 pl-3.5 pr-12 h-[44px] focus:border-black"
                   />
                   <TouchableOpacity
                     onPress={() => setShowPassword(!showPassword)}
@@ -222,4 +222,3 @@ const SignInScreen = () => {
 };
 
 export default SignInScreen;
-
