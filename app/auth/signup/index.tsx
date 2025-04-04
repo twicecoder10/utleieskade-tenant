@@ -18,10 +18,7 @@ import { StatusBar } from "expo-status-bar";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import Button from "@/components/ui/Button";
-import {
-  useRegisterMutation,
-  useRequestOtpMutation,
-} from "@/slice/auth/index.service";
+import { useRegisterMutation } from "@/slice/auth/index.service";
 import { userDetailsSchema } from "@/schemas/userDetailsSchema";
 import { ZodError } from "zod";
 
@@ -43,7 +40,6 @@ const SignupScreen = () => {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const [register, { isLoading: isRegistering }] = useRegisterMutation();
-  const [requestOtp, { isLoading: isRequestingOtp }] = useRequestOtpMutation();
 
   const validateField = (field: string, value: string) => {
     try {
@@ -77,16 +73,20 @@ const SignupScreen = () => {
         userType,
       };
 
-      userDetailsSchema.parse(userData);
       // console.log("userData:", userData);
+
+      // if (typeof userData.userEmail !== "string" || !userData.userEmail) {
+      //   Alert.alert("Validation Error", "Email is required");
+      //   return;
+      // }
+
+      userDetailsSchema.parse(userData);
       setErrors({});
 
       const response = await register(userData).unwrap();
 
       if (response?.data?.token) {
-        // Request OTP
-        await requestOtp({ email: userEmail }).unwrap();
-        router.push(`/auth/verify?email=${userEmail}`);
+        router.push("/auth/verify");
       }
     } catch (error: any) {
       if (error instanceof ZodError) {
@@ -315,14 +315,10 @@ const SignupScreen = () => {
             <View className="mt-10">
               <Button
                 label={
-                  isRegistering || isRequestingOtp ? (
-                    <ActivityIndicator color="#FFF" />
-                  ) : (
-                    "Sign Up"
-                  )
+                  isRegistering ? <ActivityIndicator color="#FFF" /> : "Sign Up"
                 }
                 onPress={handleSignup}
-                disabled={isRegistering || isRequestingOtp}
+                disabled={isRegistering}
                 style="bg-primary-500 p-3 rounded-full w-full"
                 textStyle="font-bold text-white text-xl"
               />
@@ -448,3 +444,4 @@ const PasswordField = ({
 );
 
 export default SignupScreen;
+
