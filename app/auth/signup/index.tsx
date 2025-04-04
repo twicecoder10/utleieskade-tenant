@@ -402,7 +402,7 @@ const InputField = ({
   <View className="w-full gap-1">
     <Text className="text-base">{label}</Text>
     <TextInput
-      className={`text-base text-neutral-400 rounded-xl border focus:border-black ${
+      className={`text-base text-black rounded-xl border focus:border-black ${
         error ? "border-red-500" : "border-neutral-400"
       } py-2 px-3.5 h-[44px]`}
       {...props}
@@ -427,7 +427,7 @@ const PasswordField = ({
         value={value}
         onChangeText={onChangeText}
         secureTextEntry={!showPassword}
-        className={`text-base text-neutral-400 rounded-xl border ${
+        className={`text-base text-black rounded-xl border ${
           error ? "border-red-500" : "border-neutral-400"
         } py-2 pl-3.5 pr-12 h-[44px]`}
       />
@@ -448,4 +448,3 @@ const PasswordField = ({
 );
 
 export default SignupScreen;
-
