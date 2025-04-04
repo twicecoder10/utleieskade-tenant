@@ -33,6 +33,7 @@ const Verify = () => {
     }
     try {
       await verifyOtp({ userEmail, otpCode: otp }).unwrap();
+      Alert.alert("Success", "Email verified successfully!");
       router.push("/(tabs)");
     } catch (error: string | any) {
       Alert.alert("Verification Failed", error?.data?.message || "Invalid OTP");
@@ -68,9 +69,14 @@ const Verify = () => {
           <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
             <View className="items-center mt-6">
               <OtpInput
-                numberOfDigits={5}
+                numberOfDigits={6}
                 autoFocus
                 onTextChange={setOtp}
+                // to auto submit
+                // onTextChange={(text) => {
+                //   setOtp(text);
+                //   if (text.length === 6) handleVerify();
+                // }}
                 theme={{
                   pinCodeTextStyle: { fontSize: 24, fontWeight: "bold" },
                 }}
@@ -121,3 +127,4 @@ const Verify = () => {
 };
 
 export default Verify;
+
