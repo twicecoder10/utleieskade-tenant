@@ -11,9 +11,17 @@ const AllReportCases = () => {
     error: tenantCasesError,
   } = useGetTenantCasesQuery({});
 
-  const cases = tenantCases?.cases || [];
+  const cases = tenantCases?.data?.cases || [];
 
-  // console.log("Tenant Cases:", tenantCases);
+  console.log("Tenant Cases:", JSON.stringify(tenantCases, null, 2));
+
+  const formatReportTime = (dateString: string) => {
+    const reportedDate = new Date(dateString);
+    const currentDate = new Date();
+    const diffTime = Math.abs(currentDate.getTime() - reportedDate.getTime());
+    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+    return diffDays;
+  };
 
   return (
     <SafeAreaView className="flex-1 p-4 pb-6 bg-white">
@@ -29,8 +37,20 @@ const AllReportCases = () => {
             </Text>
           ) : cases.length > 0 ? (
             <View className="flex flex-col gap-4">
-              {cases.map((caseItem, index) => (
-                <CaseCard key={index} {...caseItem} isRecent={true} />
+              {cases.map((caseItem: any, index: number) => (
+                <CaseCard
+                  key={index}
+                  status={caseItem.status}
+                  location={
+                    caseItem.damages[0]?.damageLocation || "Unknown location"
+                  }
+                  reportTime={formatReportTime(caseItem.reportedDate)}
+                  photoCount={caseItem.damages[0]?.numPhotos || 0}
+                  priority={caseItem.urgency}
+                  isRecent={true}
+                  caseTitle={caseItem.caseTitle}
+                  propertyAddress={caseItem.property?.propertyAddress}
+                />
               ))}
             </View>
           ) : (
