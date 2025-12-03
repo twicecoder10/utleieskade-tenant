@@ -1,11 +1,12 @@
 import baseQueryWithType from "@/store";
 import { createApi } from "@reduxjs/toolkit/query/react";
 
-export const casesApi = createApi({
-  reducerPath: "casesApi",
+export const filesApi = createApi({
+  reducerPath: "filesApi",
   refetchOnReconnect: true,
   refetchOnMountOrArgChange: true,
   baseQuery: baseQueryWithType,
+  tagTypes: ["files"],
   endpoints: (builder) => ({
     // uploadFile: builder.mutation({
     //   query: (body) => ({
@@ -18,9 +19,13 @@ export const casesApi = createApi({
       query: (formData) => ({
         url: "/files/upload",
         method: "POST",
-        body: formData, 
-        formData: true, 
+        body: formData,
       }),
+      transformResponse: (response: any) => {
+        return response?.data || response;
+      },
+      // Explicitly set invalidatesTags to empty array to prevent tag calculation errors
+      invalidatesTags: [],
     }),
     
 
@@ -33,4 +38,4 @@ export const casesApi = createApi({
   }),
 });
 
-export const { useUploadFileMutation, useRetrieveFileQuery } = casesApi;
+export const { useUploadFileMutation, useRetrieveFileQuery } = filesApi;

@@ -34,6 +34,7 @@ const SignupScreen = () => {
   const [userCity, setUserCity] = useState("");
   const [userPostcode, setUserPostcode] = useState("");
   const [userCountry, setUserCountry] = useState("");
+  const [acceptedToS, setAcceptedToS] = useState(false);
 
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [showPassword, setShowPassword] = useState(false);
@@ -59,6 +60,11 @@ const SignupScreen = () => {
 
   const handleSignup = async () => {
     try {
+      if (!acceptedToS) {
+        Alert.alert("Terms of Service", "Please accept the Terms of Service to continue.");
+        return;
+      }
+
       const userData = {
         userFirstName,
         userLastName,
@@ -72,13 +78,6 @@ const SignupScreen = () => {
         userCountry,
         userType,
       };
-
-      // console.log("userData:", userData);
-
-      // if (typeof userData.userEmail !== "string" || !userData.userEmail) {
-      //   Alert.alert("Validation Error", "Email is required");
-      //   return;
-      // }
 
       userDetailsSchema.parse(userData);
       setErrors({});
@@ -364,20 +363,37 @@ const SignupScreen = () => {
               />
             </View>
 
-            {/* terms */}
-            <View className="flex-row w-full flex-wrap justify-center gap-x-1 gap-y-0 mt-4">
-              <Text className="text-center text-base text-neutral-500">
-                By clicking 'Sign Up', You agree to our
-              </Text>
-              <TouchableOpacity activeOpacity={0.7}>
-                <Text className="text-primary-500">Terms of Service</Text>
+            {/* Terms of Service Checkbox */}
+            <View className="flex-row items-start gap-2 mt-4">
+              <TouchableOpacity
+                onPress={() => setAcceptedToS(!acceptedToS)}
+                activeOpacity={0.7}
+                className="mt-1"
+              >
+                <View
+                  className={`w-5 h-5 border-2 rounded ${
+                    acceptedToS
+                      ? "bg-primary-500 border-primary-500"
+                      : "border-gray-300"
+                  } flex items-center justify-center`}
+                >
+                  {acceptedToS && (
+                    <Ionicons name="checkmark" size={14} color="white" />
+                  )}
+                </View>
               </TouchableOpacity>
-              <Text className="text-center text-base text-neutral-500">
-                and
-              </Text>
-              <TouchableOpacity activeOpacity={0.7}>
-                <Text className="text-primary-500">Privacy Policy</Text>
-              </TouchableOpacity>
+              <View className="flex-1 flex-row flex-wrap">
+                <Text className="text-base text-neutral-500">
+                  I agree to the{" "}
+                </Text>
+                <TouchableOpacity activeOpacity={0.7}>
+                  <Text className="text-primary-500">Terms of Service</Text>
+                </TouchableOpacity>
+                <Text className="text-base text-neutral-500"> and </Text>
+                <TouchableOpacity activeOpacity={0.7}>
+                  <Text className="text-primary-500">Privacy Policy</Text>
+                </TouchableOpacity>
+              </View>
             </View>
           </ScrollView>
         </TouchableWithoutFeedback>

@@ -6,12 +6,14 @@ export const tenantsApi = createApi({
   refetchOnReconnect: true,
   refetchOnMountOrArgChange: true,
   baseQuery: baseQueryWithType,
+  tagTypes: ["cases", "dashboard"],
   endpoints: (builder) => ({
     getDashboardData: builder.query({
       query: () => ({
         url: "/tenants/dashboard",
         method: "GET",
       }),
+      providesTags: ["dashboard"],
     }),
 
     getTenantCases: builder.query({
@@ -19,6 +21,7 @@ export const tenantsApi = createApi({
         url: "/tenants/getCases",
         method: "GET",
       }),
+      providesTags: ["cases"],
     }),
 
     getTenantSettings: builder.query({

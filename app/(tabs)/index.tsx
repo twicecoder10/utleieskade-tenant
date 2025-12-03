@@ -5,12 +5,13 @@ import {
   TextInput,
   TouchableOpacity,
   ScrollView,
+  Alert,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { AntDesign, Ionicons } from "@expo/vector-icons";
 import Button from "@/components/ui/Button";
 import { CaseCard } from "@/components/ui/CaseCard";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { cases, faqs } from "@/components/data";
 import { useGetUserQuery } from "@/slice/auth/index.service";
 import {
@@ -18,15 +19,36 @@ import {
   useGetTenantCasesQuery,
 } from "@/slice/tenants/index.service";
 import { router } from "expo-router";
+import { useAppSelector } from "@/store/store";
+import { t } from "@/utils/translations";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 export default function HomeScreen() {
   const [openIndex, setOpenIndex] = useState<number | null>(null);
+  const { isLoggedIn } = useAppSelector((state) => state.user);
+  const [language, setLanguage] = useState<"Norwegian" | "English">("Norwegian");
+
+  useEffect(() => {
+    const loadLanguage = async () => {
+      try {
+        const savedLanguage = await AsyncStorage.getItem("@app_language");
+        if (savedLanguage === "Norwegian" || savedLanguage === "English") {
+          setLanguage(savedLanguage);
+        }
+      } catch (error) {
+        console.error("Error loading language:", error);
+      }
+    };
+    loadLanguage();
+  }, []);
 
   const {
     data: userData,
     isLoading: userLoading,
     error: userError,
-  } = useGetUserQuery({});
+  } = useGetUserQuery({}, {
+    skip: !isLoggedIn, // Skip query if not logged in
+  });
 
   const {
     data: dashboardData,
@@ -40,13 +62,17 @@ export default function HomeScreen() {
     error: tenantCasesError,
   } = useGetTenantCasesQuery({});
 
-  const activeCases = dashboardData?.activeCases?.count || 0;
-  const requiresAttention = dashboardData?.activeCases?.requiresAttention || 0;
-  const resolvedIssues = dashboardData?.resolvedIssues?.count || 0;
-
+  // Handle different response structures
+  const dashboard = dashboardData?.data || dashboardData || {};
   const user = userData?.data || {};
-  const dashboard = dashboardData?.data || {};
-  const tenants = tenantCases?.data || {};
+  
+  const activeCases = dashboard?.activeCases?.count || 0;
+  const requiresAttention = dashboard?.activeCases?.requiresAttention || 0;
+  const resolvedIssues = dashboard?.resolvedIssues?.count || 0;
+  const scheduledInspections = dashboard?.scheduledInspections || 0;
+  const nextInspection = dashboard?.nextInspection || "No upcoming inspections";
+  // Handle different response structures - cases can be in data.cases or directly in data
+  const tenants = tenantCases?.data?.cases || tenantCases?.cases || tenantCases?.data || [];
 
   // console.log("Dashboard Data:", dashboard);
   // console.log("Tenant Cases:", tenants);
@@ -72,7 +98,7 @@ export default function HomeScreen() {
         {tenantCasesError && (
           <View className="bg-red-50 p-3 rounded-lg mb-4">
             <Text className="text-red-700 text-sm">
-              Error fetching tenant cases
+              Error fetching tenant cases: {JSON.stringify(tenantCasesError)}
             </Text>
           </View>
         )}
@@ -114,10 +140,10 @@ export default function HomeScreen() {
         {/* Welcome Section */}
         <View className="mt-6">
           <Text className="text-2xl font-semibold text-neutral-900">
-            Welcome back, {user?.userFirstName || ""} 👋
+            {t("Welcome back", language)}, {user?.userFirstName || ""} 👋
           </Text>
           <Text className="text-sm text-neutral-500">
-            Manage your property issues effortlessly
+            {t("Manage your property issues effortlessly", language)}
           </Text>
         </View>
 
@@ -125,10 +151,10 @@ export default function HomeScreen() {
         <TouchableOpacity className="flex-row items-center p-4 mt-4 bg-gray-100 rounded-xl">
           <View className="flex-1">
             <Text className="text-base font-semibold text-primary-700">
-              Report damages
+              {t("Report damages", language)}
             </Text>
             <Text className="mt-1 text-sm text-neutral-500">
-              Let us know about any damage that needs attention.
+              {t("Let us know about any damage that needs attention.", language)}
             </Text>
           </View>
           <Image
@@ -142,7 +168,7 @@ export default function HomeScreen() {
         <View className="p-4 mt-4 bg-white rounded-2xl border border-[#E2E2E2]">
           <View className="flex-row items-center justify-between">
             <Text className="text-base font-medium text-neutral-900">
-              Active Cases
+              {t("Active Cases", language)}
             </Text>
             <AntDesign name="warning" size={24} color="#B91C1C" />
           </View>
@@ -151,7 +177,7 @@ export default function HomeScreen() {
           </Text>
 
           <Text className="mt-1 text-sm text-neutral-500">
-            {requiresAttention} requires attention
+            {requiresAttention} {t("requires attention", language)}
           </Text>
         </View>
 
@@ -159,7 +185,7 @@ export default function HomeScreen() {
         <View className="p-4 mt-4 bg-white rounded-2xl border border-[#E2E2E2]">
           <View className="flex-row items-center justify-between">
             <Text className="text-base font-medium text-neutral-900">
-              Resolved Issues
+              {t("Resolved Issues", language)}
             </Text>
             <Ionicons
               name="checkmark-circle-outline"
@@ -171,24 +197,24 @@ export default function HomeScreen() {
             {resolvedIssues}
           </Text>
 
-          <Text className="mt-1 text-sm text-neutral-500">Last 30 days</Text>
+          <Text className="mt-1 text-sm text-neutral-500">{t("Last 30 days", language)}</Text>
         </View>
 
         {/* Scheduled Inspections Card */}
         <View className="p-4 mt-4 bg-white rounded-2xl border border-[#E2E2E2]">
           <View className="flex-row items-center justify-between">
             <Text className="text-base font-medium text-neutral-900">
-              Scheduled Inspections
+              {t("Scheduled Inspections", language)}
             </Text>
             <AntDesign name="calendar" size={24} color="#2387D4" />
           </View>
           <Text className="mt-2 text-3xl font-bold text-neutral-900">
-            {dashboard.scheduledInspections || 0}
+            {scheduledInspections}
           </Text>
           <View className="flex-row gap-1 items-center mt-1">
-            <Text className="text-sm text-primary-500">Next:</Text>
+            <Text className="text-sm text-primary-500">{t("Next:", language)}</Text>
             <Text className="text-sm text-neutral-500">
-              {dashboard.nextInspection || "No upcoming inspections"}
+              {nextInspection}
             </Text>
           </View>
         </View>
@@ -201,15 +227,22 @@ export default function HomeScreen() {
 
           <View className="px-6 flex flex-col gap-2">
             <Button
-              label="Report New Case"
+              label={t("Report New Case", language)}
               onPress={() => router.push("/reports/report-damage")}
               iconImage={require("@/assets/images/camera-icon.png")}
               style="bg-primary-500 p-3 rounded-full w-full"
               textStyle="font-bold text-white text-base font-medium"
             />
             <Button
-              label="View All Cases"
+              label={t("View All Cases", language)}
               onPress={() => router.push("/reports/all-cases")}
+              iconImage={require("@/assets/images/document-icon.png")}
+              style="bg-white border border-[#E2E2E2] p-3 rounded-full w-full"
+              textStyle="font-bold text-neutral-700 text-base font-medium"
+            />
+            <Button
+              label={t("Download Receipts", language)}
+              onPress={() => router.push("/reports/receipts")}
               iconImage={require("@/assets/images/document-icon.png")}
               style="bg-white border border-[#E2E2E2] p-3 rounded-full w-full"
               textStyle="font-bold text-neutral-700 text-base font-medium"
@@ -236,8 +269,27 @@ export default function HomeScreen() {
                 Error fetching reports
               </Text>
             ) : tenants?.length > 0 ? (
-              tenants.map((caseItem, index: number) => (
-                <CaseCard key={index} {...caseItem} isRecent={false} />
+              tenants.map((caseItem: any, index: number) => (
+                <CaseCard
+                  key={caseItem.caseId || caseItem.caseID || index}
+                  status={caseItem.status || caseItem.caseStatus || "open"}
+                  location={caseItem.damages?.[0]?.damageLocation || caseItem.location || "Unknown location"}
+                  reportTime={caseItem.reportTime || 0}
+                  photoCount={caseItem.numPhotos || caseItem.photoCount || 0}
+                  priority={caseItem.priority || caseItem.urgency || caseItem.urgencyLevel || "moderate"}
+                  isRecent={false}
+                  caseTitle={caseItem.caseTitle || caseItem.caseDescription || "Untitled Case"}
+                  propertyAddress={caseItem.property?.propertyAddress || caseItem.propertyAddress || ""}
+                  onPress={() => {
+                    const caseId = caseItem.caseId || caseItem.caseID;
+                    if (caseId) {
+                      router.push({
+                        pathname: "/reports/report-details",
+                        params: { caseId }
+                      });
+                    }
+                  }}
+                />
               ))
             ) : (
               <Text className="text-base text-neutral-500 text-center">
@@ -279,7 +331,7 @@ export default function HomeScreen() {
                     {faq.question}
                   </Text>
                   <AntDesign
-                    name={openIndex === index ? "minuscircleo" : "pluscircleo"}
+                    name={openIndex === index ? "minus" : "plus"}
                     size={24}
                     color="#156AB4"
                   />
@@ -303,7 +355,16 @@ export default function HomeScreen() {
               <Text className="text-sm text-neutral-500 text-center max-w-[270px] mx-auto">
                 Can't find the answer you're looking for? Please contact us.
               </Text>
-              <TouchableOpacity className="mt-4 items-center bg-primary-500 p-3 px-6 rounded-full">
+              <TouchableOpacity
+                onPress={() => {
+                  // Open email client
+                  const email = "support@utleieskade.no"; // Replace with actual support email
+                  // For React Native, you can use Linking to open email
+                  // Linking.openURL(`mailto:${email}`);
+                  Alert.alert("Support", `Please contact us at: ${email}`);
+                }}
+                className="mt-4 items-center bg-primary-500 p-3 px-6 rounded-full"
+              >
                 <Text className="text-white font-medium">Send us a mail</Text>
               </TouchableOpacity>
             </View>

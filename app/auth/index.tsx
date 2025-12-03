@@ -45,12 +45,14 @@ const SignInScreen = () => {
 
     try {
       const response = await login({ userEmail, userPassword }).unwrap();
-      const { token, user } = response?.data;
+      const { token, user } = response?.data || response;
 
-      await AsyncStorage.setItem("userToken", token);
+      // Store token (use "token" to match baseQuery)
+      await AsyncStorage.setItem("token", token);
+      await AsyncStorage.setItem("userToken", token); // Also store as userToken for compatibility
       await AsyncStorage.setItem("isLoggedIn", "true");
 
-      dispatch(updateUser(user));
+      dispatch(updateUser(user || response?.data));
       dispatch(setLoggedIn(true));
 
       router.replace("/(tabs)");

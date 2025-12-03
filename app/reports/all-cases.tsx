@@ -3,6 +3,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import Header from "@/components/ui/Header";
 import { CaseCard } from "@/components/ui/CaseCard";
 import { useGetTenantCasesQuery } from "@/slice/tenants/index.service";
+import { router } from "expo-router";
 
 const AllReportCases = () => {
   const {
@@ -11,9 +12,14 @@ const AllReportCases = () => {
     error: tenantCasesError,
   } = useGetTenantCasesQuery({});
 
-  const cases = tenantCases?.data?.cases || [];
+  // Handle different response structures
+  const cases = tenantCases?.data?.cases || tenantCases?.cases || [];
 
-  console.log("Tenant Cases:", JSON.stringify(tenantCases, null, 2));
+  // Debug logging
+  if (tenantCases) {
+    console.log("Tenant Cases Response:", JSON.stringify(tenantCases, null, 2));
+    console.log("Extracted Cases:", cases.length);
+  }
 
   const formatReportTime = (dateString: string) => {
     const reportedDate = new Date(dateString);
@@ -32,9 +38,14 @@ const AllReportCases = () => {
           {tenantCasesLoading ? (
             <ActivityIndicator size="large" color="#0000ff" />
           ) : tenantCasesError ? (
-            <Text className="text-red-500 text-center">
-              Failed to load cases
-            </Text>
+            <View className="p-4">
+              <Text className="text-red-500 text-center mb-2">
+                Failed to load cases
+              </Text>
+              <Text className="text-xs text-gray-500 text-center">
+                {JSON.stringify(tenantCasesError)}
+              </Text>
+            </View>
           ) : cases.length > 0 ? (
             <View className="flex flex-col gap-4">
               {cases.map((caseItem: any, index: number) => (
@@ -42,14 +53,18 @@ const AllReportCases = () => {
                   key={index}
                   status={caseItem.status}
                   location={
-                    caseItem.damages[0]?.damageLocation || "Unknown location"
+                    caseItem.damages?.[0]?.damageLocation || caseItem.caseTitle || "Unknown location"
                   }
-                  reportTime={formatReportTime(caseItem.reportedDate)}
-                  photoCount={caseItem.damages[0]?.numPhotos || 0}
-                  priority={caseItem.urgency}
+                  reportTime={formatReportTime(caseItem.reportedDate || caseItem.createdAt)}
+                  photoCount={caseItem.numPhotos || caseItem.damages?.[0]?.numPhotos || caseItem.damages?.reduce((sum: number, d: any) => sum + (d.damagePhotos?.length || 0), 0) || 0}
+                  priority={caseItem.urgency || caseItem.urgencyLevel}
                   isRecent={true}
-                  caseTitle={caseItem.caseTitle}
+                  caseTitle={caseItem.caseTitle || caseItem.caseDescription}
                   propertyAddress={caseItem.property?.propertyAddress}
+                  onPress={() => router.push({
+                    pathname: "/reports/report-details",
+                    params: { caseId: caseItem.caseId || caseItem.caseID || caseItem.id }
+                  })}
                 />
               ))}
             </View>

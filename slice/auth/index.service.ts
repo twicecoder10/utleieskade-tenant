@@ -20,11 +20,13 @@ export const authApi = createApi({
       async onQueryStarted(id, { dispatch, queryFulfilled }) {
         try {
           const apiResponse = await queryFulfilled;
-          const { token, role } = apiResponse?.data?.data;
+          const { token, role, user } = apiResponse?.data?.data || apiResponse?.data;
+          // Store token in both keys for compatibility
           await AsyncStorage.setItem("token", token);
+          await AsyncStorage.setItem("userToken", token);
           await AsyncStorage.setItem("isLoggedIn", "true");
-          await AsyncStorage.setItem("role", role);
-          dispatch(updateUser(apiResponse?.data?.data));
+          if (role) await AsyncStorage.setItem("role", role);
+          dispatch(updateUser(user || apiResponse?.data?.data || apiResponse?.data));
         } catch (error) {
           console.error("Login Error:", error);
         }

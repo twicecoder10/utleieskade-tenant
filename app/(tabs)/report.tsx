@@ -30,11 +30,15 @@ export default function ReportScreen() {
     error: tenantCasesError,
   } = useGetTenantCasesQuery({});
 
-  const activeCases = dashboardData?.activeCases?.count || 0;
-  const requiresAttention = dashboardData?.activeCases?.requiresAttention || 0;
-  const resolvedIssues = dashboardData?.resolvedIssues?.count || 0;
+  // Handle different response structures
+  const dashboard = dashboardData?.data || dashboardData || {};
+  
+  const activeCases = dashboard?.activeCases?.count || 0;
+  const requiresAttention = dashboard?.activeCases?.requiresAttention || 0;
+  const resolvedIssues = dashboard?.resolvedIssues?.count || 0;
 
-  const tenants = tenantCases?.data || {};
+  // Handle different response structures for tenant cases
+  const tenants = tenantCases?.data?.cases || tenantCases?.cases || tenantCases?.data || [];
 
   return (
     <SafeAreaView className="flex-1 p-4 pb-6 bg-white">
@@ -145,8 +149,27 @@ export default function ReportScreen() {
                 Error fetching reports
               </Text>
             ) : tenants?.length > 0 ? (
-              tenants.map((caseItem, index: number) => (
-                <CaseCard key={index} {...caseItem} isRecent={false} />
+              tenants.map((caseItem: any, index: number) => (
+                <CaseCard
+                  key={caseItem.caseId || caseItem.caseID || index}
+                  status={caseItem.status || caseItem.caseStatus || "open"}
+                  location={caseItem.damages?.[0]?.damageLocation || caseItem.location || "Unknown location"}
+                  reportTime={caseItem.reportTime || 0}
+                  photoCount={caseItem.numPhotos || caseItem.photoCount || 0}
+                  priority={caseItem.priority || caseItem.urgency || caseItem.urgencyLevel || "moderate"}
+                  isRecent={false}
+                  caseTitle={caseItem.caseTitle || caseItem.caseDescription || "Untitled Case"}
+                  propertyAddress={caseItem.property?.propertyAddress || caseItem.propertyAddress || ""}
+                  onPress={() => {
+                    const caseId = caseItem.caseId || caseItem.caseID;
+                    if (caseId) {
+                      router.push({
+                        pathname: "/reports/report-details",
+                        params: { caseId }
+                      });
+                    }
+                  }}
+                />
               ))
             ) : (
               <Text className="text-base text-neutral-500 text-center">

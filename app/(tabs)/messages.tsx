@@ -12,10 +12,18 @@ import {
   ActivityIndicator,
   KeyboardAvoidingView,
   Animated,
+  Alert,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { useCallback, useEffect, useState, useRef } from "react";
 import * as ImagePicker from "expo-image-picker";
+import {
+  useFetchChatsQuery,
+  useFetchMessagesQuery,
+  useSendMessageMutation,
+  useMarkAsReadMutation,
+} from "@/slice/chats/index.service";
+import { useAppSelector } from "@/store/store";
 
 type Screen = "messages" | "chat";
 type MessageStatus = "sending" | "sent" | "delivered" | "read";
@@ -195,37 +203,144 @@ const MessageItem = ({
 
 // Main Component
 export default function MessagesScreen() {
+  const { user } = useAppSelector((state) => state.user);
+  const currentUserId = user?.userId || "";
+  
   const [screen, setScreen] = useState<Screen>("messages");
   const [activeTab, setActiveTab] = useState("All");
   const [searchQuery, setSearchQuery] = useState("");
-  const [isLoading, setIsLoading] = useState(true);
-  const [isRefreshing, setIsRefreshing] = useState(false);
-  const [messages, setMessages] = useState<Message[]>([]);
-  const [messagesList, setMessagesList] = useState([
-    {
-      id: 1,
-      name: "Zara smith",
-      message: "Asking to be sure you saw the damage...",
-      time: "12:39 AM",
-      unreadCount: 2,
-      avatar: "https://avatar.iran.liara.run/public",
-      role: "Property Manager",
-    },
-    {
-      id: 2,
-      name: "John Doe",
-      message: "Asking to be sure you saw the damage.",
-      time: "12:39 AM",
-      unreadCount: 2,
-      avatar: "https://avatar.iran.liara.run/public/boy",
-      role: "Property Developer",
-    },
-  ]);
-
+  const [selectedConversationId, setSelectedConversationId] = useState<string | null>(null);
   const [selectedUser, setSelectedUser] = useState<ChatUser | null>(null);
   const [newMessage, setNewMessage] = useState("");
   const [isTyping, setIsTyping] = useState(false);
   const typingTimeout = useRef<NodeJS.Timeout>();
+  const scrollViewRef = useRef<ScrollView>(null);
+  const insets = useSafeAreaInsets(); // Must be called at top level, not conditionally
+
+  // Fetch chats list
+  const {
+    data: chatsData,
+    isLoading: chatsLoading,
+    error: chatsError,
+  } = useFetchChatsQuery({}, {
+    pollingInterval: 5000, // Poll every 5 seconds for real-time updates
+  });
+
+  // Fetch messages for selected conversation
+  const {
+    data: messagesData,
+    isLoading: messagesLoading,
+    error: messagesError,
+  } = useFetchMessagesQuery(selectedConversationId!, {
+    skip: !selectedConversationId, // Skip if no conversation selected
+    pollingInterval: 3000, // Poll every 3 seconds for real-time message updates
+  });
+
+  const [sendMessageMutation] = useSendMessageMutation();
+  const [markAsReadMutation] = useMarkAsReadMutation();
+
+  // Transform API chats to messagesList format
+  const chats = chatsData?.data || chatsData || [];
+  const messagesList = chats.map((chat: any) => {
+    const otherUser = chat.UserOneDetails?.userId === currentUserId 
+      ? chat.UserTwoDetails 
+      : chat.UserOneDetails;
+    
+    // Get unread count from API response
+    const unreadCount = chat.unreadCount || 0;
+    
+    return {
+      id: chat.conversationId,
+      conversationId: chat.conversationId,
+      name: `${otherUser?.userFirstName || ""} ${otherUser?.userLastName || ""}`.trim() || "Unknown",
+      message: chat.lastMessage || "No messages yet",
+      time: chat.lastMessageTimestamp 
+        ? new Date(chat.lastMessageTimestamp).toLocaleTimeString([], {
+            hour: "numeric",
+            minute: "2-digit",
+          })
+        : "",
+      unreadCount,
+      avatar: otherUser?.userProfilePic || "https://i.pravatar.cc/100",
+      role: otherUser?.userType || "User",
+      receiverId: otherUser?.userId,
+    };
+  });
+
+  // Filter messages list based on activeTab
+  const filteredMessagesList = messagesList.filter((msg: any) => {
+    if (activeTab === "Unread") {
+      return msg.unreadCount > 0;
+    }
+    return true; // "All" shows everything
+  });
+
+  // Filter by search query
+  const searchedMessagesList = filteredMessagesList.filter((msg: any) => {
+    if (!searchQuery) return true;
+    return msg.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+           msg.message.toLowerCase().includes(searchQuery.toLowerCase());
+  });
+
+  // Transform API messages to Message format
+  const apiMessages: Message[] = (messagesData?.data || messagesData || []).map((msg: any) => ({
+    id: msg.messageId,
+    text: msg.messageText,
+    timestamp: new Date(msg.sentAt).toLocaleTimeString([], {
+      hour: "numeric",
+      minute: "2-digit",
+    }),
+    isMe: msg.senderId === currentUserId,
+    status: msg.isRead && msg.senderId === currentUserId ? "read" : 
+            msg.senderId === currentUserId ? "delivered" : undefined,
+    image: msg.imageUrl,
+  }));
+
+  const [messages, setMessages] = useState<Message[]>([]);
+
+  // Update messages when API data changes
+  useEffect(() => {
+    if (apiMessages.length > 0) {
+      // Update messages with proper status based on API data
+      const updatedMessages = apiMessages.map((msg) => {
+        // For messages from current user, check if they've been read
+        if (msg.isMe) {
+          const apiMsg = (messagesData?.data || messagesData || []).find(
+            (m: any) => m.messageId === msg.id
+          );
+          // If message is read according to API, mark as read
+          if (apiMsg?.isRead) {
+            return { ...msg, status: "read" as MessageStatus };
+          }
+          // Check if there's a newer message from the other user (reply received)
+          const messageIndex = apiMessages.findIndex((m) => m.id === msg.id);
+          const hasNewerReply = apiMessages.slice(messageIndex + 1).some((m) => !m.isMe);
+          if (hasNewerReply) {
+            return { ...msg, status: "read" as MessageStatus };
+          }
+          return { ...msg, status: msg.status || "delivered" as MessageStatus };
+        }
+        return msg;
+      });
+      
+      setMessages(updatedMessages);
+      
+      // Auto-scroll to bottom when new messages arrive
+      setTimeout(() => {
+        scrollViewRef.current?.scrollToEnd({ animated: true });
+      }, 100);
+    } else if (selectedConversationId && !messagesLoading) {
+      // Clear messages if conversation changes
+      setMessages([]);
+    }
+  }, [messagesData, selectedConversationId]);
+
+  // Mark messages as read when conversation is opened
+  useEffect(() => {
+    if (selectedConversationId && currentUserId) {
+      markAsReadMutation(selectedConversationId);
+    }
+  }, [selectedConversationId]);
 
   const simulateTyping = () => {
     setIsTyping(true);
@@ -244,11 +359,12 @@ export default function MessagesScreen() {
     }
   };
 
-  const sendMessage = (text?: string, image?: string) => {
+  const sendMessage = async (text?: string, image?: string) => {
     const messageText = text || newMessage.trim();
-    if (messageText || image) {
-      const newMsg: Message = {
-        id: Date.now().toString(),
+    if ((messageText || image) && selectedUser && selectedConversationId) {
+      // Optimistically add message
+      const tempMsg: Message = {
+        id: `temp-${Date.now()}`,
         text: messageText,
         timestamp: new Date().toLocaleTimeString([], {
           hour: "numeric",
@@ -259,53 +375,57 @@ export default function MessagesScreen() {
         image,
       };
 
-      setMessages((prev) => [...prev, newMsg]);
+      setMessages((prev) => [...prev, tempMsg]);
       setNewMessage("");
 
-      // Simulate message status
+      // Auto-scroll to bottom
       setTimeout(() => {
+        scrollViewRef.current?.scrollToEnd({ animated: true });
+      }, 100);
+
+      try {
+        // Get receiverId from selectedUser or messagesList
+        const chat = messagesList.find((m: any) => m.conversationId === selectedConversationId);
+        const receiverId = chat?.receiverId;
+        
+        if (!receiverId) {
+          throw new Error("Receiver ID not found");
+        }
+
+        // Send message via API
+        const result = await sendMessageMutation({
+          receiverId,
+          messageText: messageText || (image ? "Image" : ""),
+        }).unwrap();
+
+        // Update message status to sent
         setMessages((prev) =>
           prev.map((msg) =>
-            msg.id === newMsg.id ? { ...msg, status: "sent" } : msg
+            msg.id === tempMsg.id 
+              ? { ...msg, id: result.data?.messageId || result.messageId || tempMsg.id, status: "sent" as MessageStatus }
+              : msg
           )
         );
-        setTimeout(() => {
-          setMessages((prev) =>
-            prev.map((msg) =>
-              msg.id === newMsg.id ? { ...msg, status: "delivered" } : msg
-            )
-          );
-          simulateTyping();
-          // Simulate reply
-          setTimeout(() => {
-            const replyMsg: Message = {
-              id: Date.now().toString(),
-              text: "Sure, I did.!",
-              timestamp: new Date().toLocaleTimeString([], {
-                hour: "numeric",
-                minute: "2-digit",
-              }),
-              isMe: false,
-            };
-            setMessages((prev) => [...prev, replyMsg]);
-            setMessages((prev) =>
-              prev.map((msg) =>
-                msg.id === newMsg.id ? { ...msg, status: "read" } : msg
-              )
-            );
-          }, 4000);
-        }, 1000);
-      }, 1000);
+
+        // Status will be updated to "delivered" and "read" when API polls and returns updated data
+      } catch (error) {
+        console.error("Error sending message:", error);
+        // Remove failed message
+        setMessages((prev) => prev.filter((msg) => msg.id !== tempMsg.id));
+        Alert.alert("Error", "Failed to send message. Please try again.");
+      }
     }
   };
 
   if (screen === "chat" && selectedUser) {
+    const tabBarHeight = Platform.OS === "ios" ? 83 : 60; // Approximate tab bar height
+    
     return (
-      <SafeAreaView className="flex-1 bg-white">
+      <SafeAreaView className="flex-1 bg-white" edges={["top", "left", "right"]}>
         <KeyboardAvoidingView
           className="flex-1"
-          behavior={Platform.OS === "ios" ? "padding" : undefined}
-          keyboardVerticalOffset={Platform.OS === "ios" ? 90 : 0}
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
+          keyboardVerticalOffset={Platform.OS === "ios" ? tabBarHeight + insets.bottom : 20}
         >
           <ChatHeader
             user={{ ...selectedUser, isTyping }}
@@ -313,35 +433,55 @@ export default function MessagesScreen() {
           />
 
           <ScrollView
+            ref={scrollViewRef}
             className="flex-1 px-4"
-            contentContainerStyle={{ paddingVertical: 20 }}
+            contentContainerStyle={{ paddingVertical: 20, paddingBottom: 100 }}
             showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
           >
             <DateSeparator date="Today" />
-            {messages.map((msg) => (
-              <MessageBubble key={msg.id} message={msg} />
-            ))}
+            {messagesLoading && messages.length === 0 ? (
+              <View className="py-8 items-center">
+                <ActivityIndicator size="large" color="#2387D4" />
+                <Text className="text-sm text-gray-500 mt-4">Loading messages...</Text>
+              </View>
+            ) : messages.length > 0 ? (
+              messages.map((msg) => (
+                <MessageBubble key={msg.id} message={msg} />
+              ))
+            ) : (
+              <View className="py-8 items-center">
+                <Text className="text-sm text-gray-500">No messages yet. Start the conversation!</Text>
+              </View>
+            )}
           </ScrollView>
 
-          <View className="p-4 border-t border-gray-100 flex-row items-center gap-3">
-            <TouchableOpacity onPress={pickImage}>
-              <Ionicons name="image-outline" size={24} color="#475467" />
-            </TouchableOpacity>
+          <View 
+            className="bg-white border-t border-gray-100" 
+            style={{ 
+              paddingBottom: tabBarHeight + insets.bottom + 10,
+            }}
+          >
+            <View className="p-4 flex-row items-center gap-3">
+              <TouchableOpacity onPress={pickImage}>
+                <Ionicons name="image-outline" size={24} color="#475467" />
+              </TouchableOpacity>
 
-            <TextInput
-              placeholder="Type message here..."
-              value={newMessage}
-              onChangeText={setNewMessage}
-              className="flex-1 text-base flex-row items-center bg-gray-100 rounded-full px-4 py-3 max-h-[60px]"
-              multiline
-            />
+              <TextInput
+                placeholder="Type message here..."
+                value={newMessage}
+                onChangeText={setNewMessage}
+                className="flex-1 text-base flex-row items-center bg-gray-100 rounded-full px-4 py-3 max-h-[60px]"
+                multiline
+              />
 
-            <TouchableOpacity
-              onPress={() => sendMessage()}
-              className="bg-primary-500 p-2 rounded-full items-center justify-center"
-            >
-              <FontAwesome name="send-o" size={20} color="white" />
-            </TouchableOpacity>
+              <TouchableOpacity
+                onPress={() => sendMessage()}
+                className="bg-primary-500 p-2 rounded-full items-center justify-center"
+              >
+                <FontAwesome name="send-o" size={20} color="white" />
+              </TouchableOpacity>
+            </View>
           </View>
         </KeyboardAvoidingView>
       </SafeAreaView>
@@ -355,11 +495,9 @@ export default function MessagesScreen() {
         showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl
-            refreshing={isRefreshing}
-            onRefresh={async () => {
-              setIsRefreshing(true);
-              await new Promise((resolve) => setTimeout(resolve, 1500));
-              setIsRefreshing(false);
+            refreshing={chatsLoading}
+            onRefresh={() => {
+              // RTK Query will automatically refetch
             }}
           />
         }
@@ -399,21 +537,39 @@ export default function MessagesScreen() {
         </View>
 
         <View className="mt-4">
-          {messagesList.map((message, index) => (
-            <MessageItem
-              key={message.id}
-              {...message}
-              isLastItem={index === messagesList.length - 1}
-              onPress={() => {
-                setSelectedUser({
-                  name: message.name,
-                  avatar: message.avatar,
-                  role: message.role,
-                });
-                setScreen("chat");
-              }}
-            />
-          ))}
+          {chatsLoading ? (
+            <View className="py-8 items-center">
+              <ActivityIndicator size="large" color="#2387D4" />
+              <Text className="text-sm text-gray-500 mt-4">Loading conversations...</Text>
+            </View>
+          ) : chatsError ? (
+            <View className="py-8 items-center">
+              <Text className="text-sm text-red-500">Error loading conversations</Text>
+            </View>
+          ) : searchedMessagesList.length > 0 ? (
+            searchedMessagesList.map((message: any, index: number) => (
+              <MessageItem
+                key={message.id || message.conversationId}
+                {...message}
+                isLastItem={index === searchedMessagesList.length - 1}
+                onPress={() => {
+                  setSelectedUser({
+                    name: message.name,
+                    avatar: message.avatar,
+                    role: message.role,
+                  });
+                  setSelectedConversationId(message.conversationId);
+                  setScreen("chat");
+                }}
+              />
+            ))
+          ) : (
+            <View className="py-8 items-center">
+              <Text className="text-sm text-gray-500">
+                {activeTab === "Unread" ? "No unread messages" : "No conversations yet"}
+              </Text>
+            </View>
+          )}
         </View>
       </ScrollView>
     </SafeAreaView>

@@ -12,14 +12,29 @@ import "react-native-reanimated";
 import "../global.css";
 
 import { useColorScheme } from "@/hooks/useColorScheme";
-import StoreProvider from "@/store/StoreProvider";
+import { Provider } from "react-redux";
+import { store } from "@/store/store";
 import { useAppDispatch, useAppSelector } from "@/store/store";
 import { checkAuthAsync } from "@/slice/userSlice";
+import { Platform } from "react-native";
+
+// Stripe only works on native platforms, not web
+let StripeProvider: any = ({ children }: { children: React.ReactNode }) => <>{children}</>;
+if (Platform.OS !== "web") {
+  try {
+    const stripe = require("@stripe/stripe-react-native");
+    StripeProvider = stripe.StripeProvider;
+  } catch (e) {
+    console.warn("Stripe not available on this platform");
+  }
+}
+
+const STRIPE_PUBLISHABLE_KEY = "pk_test_WVWA7jPmzISjavPB62KpTAs400mFLVsnk1";
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
 
-function RootLayout() {
+function RootLayoutContent() {
   const colorScheme = useColorScheme();
   const [isLayoutReady, setIsLayoutReady] = useState(false);
   const [loaded, font_error] = useFonts({
@@ -109,6 +124,10 @@ function RootLayout() {
               name="reports/assessment-payment"
               options={{ headerShown: false }}
             />
+            <Stack.Screen
+              name="reports/receipts"
+              options={{ headerShown: false }}
+            />
             <Stack.Screen name="+not-found" />
           </Stack>
         )}
@@ -119,10 +138,12 @@ function RootLayout() {
   );
 }
 
-export default function App() {
+export default function RootLayout() {
   return (
-    <StoreProvider>
-      <RootLayout />
-    </StoreProvider>
+    <Provider store={store}>
+      <StripeProvider publishableKey={STRIPE_PUBLISHABLE_KEY}>
+        <RootLayoutContent />
+      </StripeProvider>
+    </Provider>
   );
 }

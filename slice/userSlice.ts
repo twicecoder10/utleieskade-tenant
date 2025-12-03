@@ -14,13 +14,14 @@ const initialState: UserState = {
 
 // Async thunk to check authentication
 export const checkAuthAsync = createAsyncThunk("user/checkAuth", async (_, { dispatch }) => {
-  const token = await AsyncStorage.getItem("userToken");
+  // Check for token in both possible keys
+  const token = await AsyncStorage.getItem("token") || await AsyncStorage.getItem("userToken");
   if (token) {
     dispatch(setLoggedIn(true));
-    router.replace("/(tabs)"); // Navigate to home
+    // Don't navigate here - let the useEffect in _layout.tsx handle navigation
   } else {
     dispatch(setLoggedIn(false));
-    router.replace("/auth"); // Navigate to auth
+    // Don't navigate here - let the useEffect in _layout.tsx handle navigation
   }
 });
 

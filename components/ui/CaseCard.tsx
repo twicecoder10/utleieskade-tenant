@@ -14,6 +14,7 @@ export const CaseCard = ({
   isRecent,
   caseTitle,
   propertyAddress,
+  onPress,
 }: {
   status: string;
   location: string;
@@ -23,6 +24,7 @@ export const CaseCard = ({
   isRecent: boolean;
   caseTitle: string;
   propertyAddress: string;
+  onPress?: () => void;
 }) => {
   const statusStyles: Record<
     Status,
@@ -40,13 +42,17 @@ export const CaseCard = ({
   };
 
   // Normalize the status and priority to match our types
+  // Add safety checks for undefined/null values
+  const statusStr = status?.toString().toLowerCase() || "open";
+  const priorityStr = priority?.toString().toLowerCase() || "moderate";
+  
   const normalizedStatus = (
-    status.toLowerCase() === "in progress"
+    statusStr === "in progress"
       ? "in-progress"
-      : status.toLowerCase()
+      : statusStr
   ) as Status;
 
-  const normalizedPriority = priority.toLowerCase() as Priority;
+  const normalizedPriority = priorityStr as Priority;
 
   // Use the defined styles, with default styles
   const statusStyle = statusStyles[normalizedStatus] || {
@@ -56,7 +62,11 @@ export const CaseCard = ({
   const priorityColor = priorityColors[normalizedPriority] || "#6B7280";
 
   return (
-    <View className="bg-white p-4 border-b border-gray-200">
+    <TouchableOpacity
+      onPress={onPress}
+      activeOpacity={0.7}
+      className="bg-white p-4 border-b border-gray-200"
+    >
       <View className="flex flex-row items-start gap-3">
         <Image
           source={{
@@ -111,11 +121,16 @@ export const CaseCard = ({
             </View>
 
             <TouchableOpacity
-              onPress={() =>
-                isRecent
-                  ? router.push("/reports/report-details")
-                  : console.log("Downloaded Report Receipt")
-              }
+              onPress={(e) => {
+                e.stopPropagation();
+                if (onPress) {
+                  onPress();
+                } else if (isRecent) {
+                  router.push("/reports/report-details");
+                } else {
+                  console.log("Downloaded Report Receipt");
+                }
+              }}
               className="mt-2"
             >
               <Text className="text-sm font-medium text-primary-500">
@@ -125,7 +140,7 @@ export const CaseCard = ({
           </View>
         </View>
       </View>
-    </View>
+    </TouchableOpacity>
   );
 };
 
