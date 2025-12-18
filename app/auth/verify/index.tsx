@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
   View,
   Text,
@@ -27,9 +27,12 @@ const Verify = () => {
   const [resendOtp, { isLoading: isResending, error: resendError }] =
     useResendOtpMutation();
 
-  const handleVerify = async () => {
+  const handleVerify = useCallback(async () => {
     if (!otp || otp.length < 6) {
       return Alert.alert("Error", "Enter a valid 6-digit OTP");
+    }
+    if (!userEmail) {
+      return Alert.alert("Error", "Email address is missing. Please go back and try again.");
     }
     try {
       await verifyOtp({ userEmail, otpCode: otp }).unwrap();
@@ -38,16 +41,27 @@ const Verify = () => {
     } catch (error: string | any) {
       Alert.alert("Verification Failed", error?.data?.message || "Invalid OTP");
     }
-  };
+  }, [otp, userEmail, verifyOtp]);
 
   const handleResend = async () => {
+    if (!userEmail) {
+      return Alert.alert("Error", "Email address is missing. Please go back and try again.");
+    }
     try {
       await resendOtp({ userEmail }).unwrap();
       Alert.alert("Success", "OTP has been resent successfully!");
+      setOtp(""); // Clear OTP after resend
     } catch (error: string | any) {
       Alert.alert("Error", error?.data?.message || "Failed to resend OTP");
     }
   };
+
+  // Auto-verify when OTP is complete (6 digits)
+  useEffect(() => {
+    if (otp.length === 6 && !isVerifying && userEmail) {
+      handleVerify();
+    }
+  }, [otp, isVerifying, userEmail, handleVerify]);
 
   return (
     <SafeAreaView className="flex-1 p-4 pb-6 bg-white">
@@ -61,8 +75,13 @@ const Verify = () => {
         <View className="items-center">
           <Text className="text-3xl font-semibold">Verify your email</Text>
           <Text className="text-base text-neutral-700">
-            We sent a code to <Text className="font-semibold">{userEmail}</Text>
+            We sent a code to <Text className="font-semibold">{userEmail || "your email"}</Text>
           </Text>
+          {!userEmail && (
+            <Text className="text-red-500 text-sm mt-2">
+              Email address is missing. Please go back and try again.
+            </Text>
+          )}
         </View>
 
         <KeyboardAvoidingView behavior="padding">
@@ -72,11 +91,6 @@ const Verify = () => {
                 numberOfDigits={6}
                 autoFocus
                 onTextChange={setOtp}
-                // to auto submit
-                // onTextChange={(text) => {
-                //   setOtp(text);
-                //   if (text.length === 6) handleVerify();
-                // }}
                 theme={{
                   pinCodeTextStyle: { fontSize: 24, fontWeight: "bold" },
                 }}
