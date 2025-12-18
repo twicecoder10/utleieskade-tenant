@@ -44,7 +44,7 @@ export default function SettingsScreen() {
 
   const [firstName, setFirstName] = useState(user?.userFirstName || "");
   const [lastName, setLastName] = useState(user?.userLastName || "");
-  const [phone, setPhone] = useState(user?.userPhone || "");
+  const [phone, setPhone] = useState(user?.userPhone || "+47");
   const [email, setEmail] = useState(user?.userEmail || "");
   const [selectedLanguage, setSelectedLanguage] = useState("Norwegian"); // Default Norwegian
   const [selectedTheme, setSelectedTheme] = useState("Light");
@@ -80,7 +80,13 @@ export default function SettingsScreen() {
     setSelectedLanguage(language);
     try {
       await AsyncStorage.setItem("@app_language", language);
-      Alert.alert("Success", `Language changed to ${language === "Norwegian" ? "Norsk" : "English"}`);
+      // Trigger app refresh by navigating to current route
+      // This will cause all screens to re-render with new language
+      router.replace("/(tabs)");
+      // Small delay to ensure navigation completes before showing alert
+      setTimeout(() => {
+        Alert.alert("Success", `Language changed to ${language === "Norwegian" ? "Norsk" : "English"}`);
+      }, 100);
     } catch (error) {
       console.error("Error saving language:", error);
     }
@@ -276,9 +282,28 @@ export default function SettingsScreen() {
               <View className="relative">
                 <TextInput
                   value={phone}
-                  onChangeText={setPhone}
-                  placeholder="Phone Number"
+                  onChangeText={(text) => {
+                    // Remove all non-digits except + at start
+                    let digits = text.replace(/^\+/, "").replace(/\D/g, "");
+                    
+                    // Always start with +47
+                    let formatted = "+47";
+                    
+                    // Add digits after +47 (max 8 digits)
+                    if (digits.length > 0) {
+                      // If user typed 47, skip it and use remaining digits
+                      if (digits.startsWith("47")) {
+                        digits = digits.substring(2);
+                      }
+                      // Limit to 8 digits
+                      formatted += digits.substring(0, 8);
+                    }
+                    
+                    setPhone(formatted);
+                  }}
+                  placeholder="+4712345678"
                   keyboardType="phone-pad"
+                  maxLength={12}
                   className="border border-gray-300 rounded-lg px-4 py-3 h-[44px] text-base text-neutral-900 font-medium pr-10"
                 />
                 <Feather
