@@ -69,13 +69,14 @@ export default function HomeScreen() {
     skip: !isLoggedIn, // Skip query if not logged in
   });
 
-  const { data: unreadCountData, error: notificationError } = useGetUnreadNotificationCountQuery({}, {
+  // Only fetch notifications if logged in - skip if not logged in to avoid errors
+  const { data: unreadCountData, error: notificationError } = useGetUnreadNotificationCountQuery(undefined, {
     skip: !isLoggedIn,
     pollingInterval: 30000, // Poll every 30 seconds for new notifications
   });
   
-  // Safely extract unread count, handle different response structures
-  const unreadCount = notificationError ? 0 : (unreadCountData?.data?.count || unreadCountData?.count || unreadCountData || 0);
+  // Safely extract unread count, handle different response structures and errors
+  const unreadCount = notificationError ? 0 : (unreadCountData?.data?.count || unreadCountData?.count || (typeof unreadCountData === 'number' ? unreadCountData : 0));
 
   // Refetch dashboard and cases when screen comes into focus
   useFocusEffect(
