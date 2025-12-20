@@ -27,13 +27,13 @@ const SignupScreen = () => {
   const [userFirstName, setUserFirstName] = useState("");
   const [userLastName, setUserLastName] = useState("");
   const [userEmail, setUserEmail] = useState("");
-  const [userPhone, setUserPhone] = useState("");
+  const [userPhone, setUserPhone] = useState("+47");
   const [userPassword, setUserPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [userAddress, setUserAddress] = useState("");
   const [userCity, setUserCity] = useState("");
   const [userPostcode, setUserPostcode] = useState("");
-  const [userCountry, setUserCountry] = useState("");
+  const [userCountry] = useState("Norway"); // Fixed to Norway only
   const [acceptedToS, setAcceptedToS] = useState(false);
 
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -85,7 +85,10 @@ const SignupScreen = () => {
       const response = await register(userData).unwrap();
 
       if (response?.data?.token) {
-        router.push("/auth/verify");
+        router.push({
+          pathname: "/auth/verify",
+          params: { userEmail: userEmail }
+        });
       }
     } catch (error: any) {
       if (error instanceof ZodError) {
@@ -221,11 +224,28 @@ const SignupScreen = () => {
                 label="Phone Number"
                 value={userPhone}
                 onChangeText={(text) => {
-                  setUserPhone(text);
-                  validateField("userPhone", text);
+                  // Remove all non-digits except + at start
+                  let digits = text.replace(/^\+/, "").replace(/\D/g, "");
+                  
+                  // Always start with +47
+                  let formatted = "+47";
+                  
+                  // Add digits after +47 (max 8 digits)
+                  if (digits.length > 0) {
+                    // If user typed 47, skip it and use remaining digits
+                    if (digits.startsWith("47")) {
+                      digits = digits.substring(2);
+                    }
+                    // Limit to 8 digits
+                    formatted += digits.substring(0, 8);
+                  }
+                  
+                  setUserPhone(formatted);
+                  validateField("userPhone", formatted);
                 }}
-                placeholder="+44 848 9390 8999"
+                placeholder="+4712345678"
                 keyboardType="phone-pad"
+                maxLength={12}
                 error={errors.userPhone}
               />
 
@@ -267,16 +287,10 @@ const SignupScreen = () => {
                 </View>
               </View>
 
-              <InputField
-                label="Country"
-                value={userCountry}
-                onChangeText={(text) => {
-                  setUserCountry(text);
-                  validateField("userCountry", text);
-                }}
-                placeholder="UK"
-                error={errors.userCountry}
-              />
+              {/* Country is fixed to Norway - hidden field */}
+              <View style={{ display: "none" }}>
+                <TextInput value={userCountry} />
+              </View>
 
               <PasswordField
                 label="Create Password"

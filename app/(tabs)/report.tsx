@@ -1,8 +1,9 @@
+import React from "react";
 import { cases } from "@/components/data";
 import { CaseCard } from "@/components/ui/CaseCard";
 import Header from "@/components/ui/Header";
 import { AntDesign, Ionicons } from "@expo/vector-icons";
-import { router } from "expo-router";
+import { router, useFocusEffect } from "expo-router";
 import {
   Text,
   ScrollView,
@@ -14,21 +15,40 @@ import {
   useGetDashboardDataQuery,
   useGetTenantCasesQuery,
 } from "@/slice/tenants/index.service";
+import { useAppSelector } from "@/store/store";
 
 import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function ReportScreen() {
+  const { isLoggedIn } = useAppSelector((state) => state.user);
+  
   const {
     data: dashboardData,
     isLoading: dashboardLoading,
     error: dashboardError,
-  } = useGetDashboardDataQuery({});
+    refetch: refetchDashboard,
+  } = useGetDashboardDataQuery({}, {
+    skip: !isLoggedIn, // Skip query if not logged in
+  });
 
   const {
     data: tenantCases,
     isLoading: tenantCasesLoading,
     error: tenantCasesError,
-  } = useGetTenantCasesQuery({});
+    refetch: refetchCases,
+  } = useGetTenantCasesQuery({}, {
+    skip: !isLoggedIn, // Skip query if not logged in
+  });
+
+  // Refetch dashboard and cases when screen comes into focus
+  useFocusEffect(
+    React.useCallback(() => {
+      if (isLoggedIn) {
+        refetchDashboard();
+        refetchCases();
+      }
+    }, [isLoggedIn, refetchDashboard, refetchCases])
+  );
 
   // Handle different response structures
   const dashboard = dashboardData?.data || dashboardData || {};

@@ -32,26 +32,33 @@ export default function SettingsScreen() {
     dispatch(logout());
   };
 
-  const { isLoggedIn } = useAppSelector((state) => state.user);
+  const { isLoggedIn, user: userFromState } = useAppSelector((state) => state.user);
   const { data, error } = useGetUserQuery({}, {
     skip: !isLoggedIn, // Skip query if not logged in
   });
 
-  // if (isLoading) return <Text>Loading...</Text>;
-  // if (error) return <Text>Error fetching data!</Text>;
+  // Use data from query or fallback to state
+  const user = data?.data || userFromState || {};
 
-  const user = data?.data || {};
-
-  const [firstName, setFirstName] = useState(user?.userFirstName || "");
-  const [lastName, setLastName] = useState(user?.userLastName || "");
-  const [phone, setPhone] = useState(user?.userPhone || "+47");
-  const [email, setEmail] = useState(user?.userEmail || "");
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
+  const [phone, setPhone] = useState("+47");
+  const [email, setEmail] = useState("");
   const [selectedLanguage, setSelectedLanguage] = useState("Norwegian"); // Default Norwegian
   const [selectedTheme, setSelectedTheme] = useState("Light");
   const [profileImage, setProfileImage] = useState(user?.userProfilePic || "https://i.pravatar.cc/57");
   const [uploadingImage, setUploadingImage] = useState(false);
 
   const [uploadFile] = useUploadFileMutation();
+
+  // Update form fields when user data changes
+  useEffect(() => {
+    if (user?.userFirstName) setFirstName(user.userFirstName);
+    if (user?.userLastName) setLastName(user.userLastName);
+    if (user?.userPhone) setPhone(user.userPhone);
+    if (user?.userEmail) setEmail(user.userEmail);
+    if (user?.userProfilePic) setProfileImage(user.userProfilePic);
+  }, [user]);
 
   // Load saved language preference and theme
   useEffect(() => {
@@ -65,15 +72,12 @@ export default function SettingsScreen() {
         if (savedTheme) {
           setSelectedTheme(savedTheme);
         }
-        if (user?.userProfilePic) {
-          setProfileImage(user.userProfilePic);
-        }
       } catch (error) {
         console.error("Error loading preferences:", error);
       }
     };
     loadPreferences();
-  }, [user]);
+  }, []);
 
   // Save language preference
   const handleLanguageChange = async (language: string) => {

@@ -1,30 +1,59 @@
-import { View, ScrollView, Text, ActivityIndicator } from "react-native";
+import React from "react";
+import { View, ScrollView, Text, ActivityIndicator, TextInput, TouchableOpacity } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Header from "@/components/ui/Header";
 import { CaseCard } from "@/components/ui/CaseCard";
 import { useGetTenantCasesQuery } from "@/slice/tenants/index.service";
-import { router } from "expo-router";
+import { router, useLocalSearchParams, useFocusEffect } from "expo-router";
 import { useAppSelector } from "@/store/store";
+import { useState, useEffect } from "react";
+import { Ionicons } from "@expo/vector-icons";
 
 const AllReportCases = () => {
   const { isLoggedIn } = useAppSelector((state) => state.user);
+  const params = useLocalSearchParams();
+  const [searchQuery, setSearchQuery] = useState(params.search as string || "");
   
   const {
     data: tenantCases,
     isLoading: tenantCasesLoading,
     error: tenantCasesError,
-  } = useGetTenantCasesQuery({}, {
+    refetch: refetchCases,
+  } = useGetTenantCasesQuery({
+    search: searchQuery || undefined,
+  }, {
     skip: !isLoggedIn, // Skip query if not logged in
+    refetchOnMountOrArgChange: true,
   });
 
   // Handle different response structures
-  const cases = tenantCases?.data?.cases || tenantCases?.cases || [];
+  const cases = tenantCases?.data?.cases || tenantCases?.cases || tenantCases?.data || [];
 
-  // Debug logging
-  if (tenantCases) {
-    console.log("Tenant Cases Response:", JSON.stringify(tenantCases, null, 2));
-    console.log("Extracted Cases:", cases.length);
-  }
+  // Refetch cases when screen comes into focus to get latest status updates
+  useFocusEffect(
+    React.useCallback(() => {
+      if (isLoggedIn) {
+        refetchCases();
+      }
+    }, [isLoggedIn, refetchCases])
+  );
+
+  // Update search query when params change
+  useEffect(() => {
+    if (params.search) {
+      setSearchQuery(params.search as string);
+    }
+  }, [params.search]);
+
+  // Debounce search to avoid too many API calls
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (isLoggedIn && searchQuery) {
+        refetchCases();
+      }
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
 
   const formatReportTime = (dateString: string) => {
     const reportedDate = new Date(dateString);
@@ -34,10 +63,35 @@ const AllReportCases = () => {
     return diffDays;
   };
 
+
   return (
     <SafeAreaView className="flex-1 p-4 pb-6 bg-white">
       <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
         <Header title="All Cases" showBack />
+
+        {/* Search Bar */}
+        <View className="mt-4 relative">
+          <TextInput
+            placeholder="Search by case details, description, location..."
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+            className="border border-gray-300 rounded-lg px-4 py-3 h-[44px] text-base text-neutral-500 font-medium pl-10"
+          />
+          <Ionicons
+            name="search-outline"
+            size={20}
+            color="#98A2B3"
+            style={{ position: "absolute", left: 12, top: 12 }}
+          />
+          {searchQuery ? (
+            <TouchableOpacity
+              onPress={() => setSearchQuery("")}
+              style={{ position: "absolute", right: 12, top: 12 }}
+            >
+              <Ionicons name="close-circle" size={20} color="#98A2B3" />
+            </TouchableOpacity>
+          ) : null}
+        </View>
 
         <View className="mt-6">
           {tenantCasesLoading ? (
@@ -84,9 +138,12 @@ const AllReportCases = () => {
               })}
             </View>
           ) : (
-            <Text className="text-neutral-500 text-center">
-              No cases available
-            </Text>
+            <View className="items-center justify-center py-8">
+              <Ionicons name="document-outline" size={64} color="#D1D5DB" />
+              <Text className="text-neutral-500 text-center mt-4">
+                {searchQuery ? "No cases found matching your search" : "No cases available"}
+              </Text>
+            </View>
           )}
         </View>
       </ScrollView>

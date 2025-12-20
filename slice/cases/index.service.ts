@@ -40,7 +40,7 @@ export const casesApi = createApi({
         responseHandler: async (response) => {
           // In React Native, we'll return the URL instead of the blob
           // The actual download will be handled by Linking.openURL
-          const apiUrl = process.env.EXPO_PUBLIC_API_URL || "http://192.168.0.227:3000";
+          const apiUrl = process.env.EXPO_PUBLIC_API_URL || "https://utleieskade-api2-production-2915.up.railway.app";
           return `${apiUrl}/tenants/receipts/${receiptId}/download`;
         },
       }),

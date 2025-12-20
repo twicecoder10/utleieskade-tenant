@@ -18,9 +18,12 @@ import {
   useResendOtpMutation,
   useVerifyOtpMutation,
 } from "@/slice/auth/index.service";
+import { useAppDispatch } from "@/store/store";
+import { setLoggedIn } from "@/slice/userSlice";
 
 const Verify = () => {
   const { userEmail } = useLocalSearchParams<{ userEmail: string }>();
+  const dispatch = useAppDispatch();
   const [otp, setOtp] = useState("");
   const [verifyOtp, { isLoading: isVerifying, error: verifyError }] =
     useVerifyOtpMutation();
@@ -35,9 +38,12 @@ const Verify = () => {
       return Alert.alert("Error", "Email address is missing. Please go back and try again.");
     }
     try {
-      await verifyOtp({ userEmail, otpCode: otp }).unwrap();
+      const response = await verifyOtp({ userEmail, otpCode: otp }).unwrap();
+      // The mutation's onQueryStarted should handle setting logged in state
+      // But we'll also ensure it's set here as a fallback
+      dispatch(setLoggedIn(true));
       Alert.alert("Success", "Email verified successfully!");
-      router.push("/(tabs)");
+      router.replace("/(tabs)");
     } catch (error: string | any) {
       Alert.alert("Verification Failed", error?.data?.message || "Invalid OTP");
     }

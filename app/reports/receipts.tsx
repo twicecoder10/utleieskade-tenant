@@ -8,9 +8,13 @@ import { ActivityIndicator } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as FileSystem from "expo-file-system";
 import * as Sharing from "expo-sharing";
+import { useAppSelector } from "@/store/store";
 
 const ReceiptsScreen = () => {
-  const { data: receiptsData, isLoading, error } = useGetReceiptsQuery({});
+  const { isLoggedIn } = useAppSelector((state) => state.user);
+  const { data: receiptsData, isLoading, error } = useGetReceiptsQuery({}, {
+    skip: !isLoggedIn, // Skip query if not logged in
+  });
   const [downloadingReceiptId, setDownloadingReceiptId] = useState<string | null>(null);
 
   const receipts = receiptsData?.data || [];
@@ -21,7 +25,7 @@ const ReceiptsScreen = () => {
       
       // Get token for authentication
       const token = await AsyncStorage.getItem("token") || await AsyncStorage.getItem("userToken");
-      const apiUrl = process.env.EXPO_PUBLIC_API_URL || "http://192.168.0.227:3000";
+      const apiUrl = process.env.EXPO_PUBLIC_API_URL || "https://utleieskade-api2-production-2915.up.railway.app";
       const downloadUrl = `${apiUrl}/tenants/receipts/${receiptId}/download`;
       
       // Use expo-file-system to download the file directly

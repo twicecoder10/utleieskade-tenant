@@ -217,12 +217,15 @@ export default function MessagesScreen() {
   const scrollViewRef = useRef<ScrollView>(null);
   const insets = useSafeAreaInsets(); // Must be called at top level, not conditionally
 
+  const { isLoggedIn } = useAppSelector((state) => state.user);
+
   // Fetch chats list
   const {
     data: chatsData,
     isLoading: chatsLoading,
     error: chatsError,
   } = useFetchChatsQuery({}, {
+    skip: !isLoggedIn, // Skip query if not logged in
     pollingInterval: 5000, // Poll every 5 seconds for real-time updates
   });
 
@@ -232,7 +235,7 @@ export default function MessagesScreen() {
     isLoading: messagesLoading,
     error: messagesError,
   } = useFetchMessagesQuery(selectedConversationId!, {
-    skip: !selectedConversationId, // Skip if no conversation selected
+    skip: !isLoggedIn || !selectedConversationId, // Skip if not logged in or no conversation selected
     pollingInterval: 3000, // Poll every 3 seconds for real-time message updates
   });
 

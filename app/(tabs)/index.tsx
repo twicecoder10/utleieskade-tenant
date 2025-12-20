@@ -11,14 +11,15 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { AntDesign, Ionicons } from "@expo/vector-icons";
 import Button from "@/components/ui/Button";
 import { CaseCard } from "@/components/ui/CaseCard";
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { cases, faqs } from "@/components/data";
 import { useGetUserQuery } from "@/slice/auth/index.service";
 import {
   useGetDashboardDataQuery,
   useGetTenantCasesQuery,
+  useGetUnreadNotificationCountQuery,
 } from "@/slice/tenants/index.service";
-import { router } from "expo-router";
+import { router, useFocusEffect } from "expo-router";
 import { useAppSelector } from "@/store/store";
 import { t } from "@/utils/translations";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -54,6 +55,7 @@ export default function HomeScreen() {
     data: dashboardData,
     isLoading: dashboardLoading,
     error: dashboardError,
+    refetch: refetchDashboard,
   } = useGetDashboardDataQuery({}, {
     skip: !isLoggedIn, // Skip query if not logged in
   });
@@ -62,9 +64,27 @@ export default function HomeScreen() {
     data: tenantCases,
     isLoading: tenantCasesLoading,
     error: tenantCasesError,
+    refetch: refetchCases,
   } = useGetTenantCasesQuery({}, {
     skip: !isLoggedIn, // Skip query if not logged in
   });
+
+  const { data: unreadCountData } = useGetUnreadNotificationCountQuery({}, {
+    skip: !isLoggedIn,
+    pollingInterval: 30000, // Poll every 30 seconds for new notifications
+  });
+  
+  const unreadCount = unreadCountData?.data?.count || unreadCountData?.count || 0;
+
+  // Refetch dashboard and cases when screen comes into focus
+  useFocusEffect(
+    React.useCallback(() => {
+      if (isLoggedIn) {
+        refetchDashboard();
+        refetchCases();
+      }
+    }, [isLoggedIn, refetchDashboard, refetchCases])
+  );
 
   // Handle different response structures
   const dashboard = dashboardData?.data || dashboardData || {};
@@ -122,8 +142,19 @@ export default function HomeScreen() {
               <Ionicons name="chevron-down-outline" size={16} color="#667085" />
             </TouchableOpacity>
           </View>
-          <TouchableOpacity>
+          <TouchableOpacity
+            onPress={() => {
+              // Navigate to notifications screen when implemented
+              Alert.alert("Notifications", "Notification screen coming soon");
+            }}
+            className="relative"
+          >
             <Ionicons name="notifications-outline" size={24} color="#667085" />
+            {unreadCount > 0 && (
+              <View className="absolute -top-1 -right-1 bg-red-500 rounded-full w-5 h-5 items-center justify-center">
+                <Text className="text-white text-xs font-bold">{unreadCount > 9 ? '9+' : unreadCount}</Text>
+              </View>
+            )}
           </TouchableOpacity>
         </View>
 
@@ -131,8 +162,17 @@ export default function HomeScreen() {
         <View className="mt-4 flex-row gap-3 items-center">
           <View className="relative flex-1">
             <TextInput
-              placeholder="Search"
+              placeholder="Search cases..."
               className="border border-gray-300 rounded-lg px-4 py-3 h-[44px] text-base text-neutral-500 font-medium pl-10"
+              onChangeText={(text) => {
+                // Search will be handled by navigating to all-cases with search param
+                if (text.trim()) {
+                  router.push({
+                    pathname: "/reports/all-cases",
+                    params: { search: text.trim() }
+                  });
+                }
+              }}
             />
             <Ionicons
               name="search-outline"
@@ -141,10 +181,6 @@ export default function HomeScreen() {
               className="absolute left-3 top-1/2 -translate-y-1/2"
             />
           </View>
-
-          <TouchableOpacity className="bg-primary-500 p-3 rounded-lg">
-            <Ionicons name="options-outline" size={20} color="white" />
-          </TouchableOpacity>
         </View>
 
         {/* Welcome Section */}

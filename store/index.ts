@@ -1,13 +1,14 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { fetchBaseQuery } from "@reduxjs/toolkit/query/react";
 
-const apiUrl = process.env.EXPO_PUBLIC_API_URL || "http://192.168.0.227:3000";
+const apiUrl = process.env.EXPO_PUBLIC_API_URL || "https://utleieskade-api2-production-2915.up.railway.app";
 
 // Log API URL for debugging (remove in production)
 console.log("🌐 API URL:", apiUrl);
 
 const baseQuery = fetchBaseQuery({
-  baseUrl: apiUrl, 
+  baseUrl: apiUrl,
+  timeout: 30000, // 30 seconds timeout
   prepareHeaders: async (headers, { getState, extra, endpoint, type, forced }) => {
     try {
       // Check both token keys for compatibility
@@ -23,9 +24,46 @@ const baseQuery = fetchBaseQuery({
     // Only set Accept for non-FormData requests
     if (!(headers.get("Content-Type")?.includes("multipart/form-data"))) {
       headers.set("Accept", "application/json");
+      headers.set("Content-Type", "application/json");
     }
   },
   credentials: "include",
 });
 
-export default baseQuery;
+// Enhanced error handling wrapper
+const baseQueryWithErrorHandling = async (args, api, extraOptions) => {
+  try {
+    const result = await baseQuery(args, api, extraOptions);
+    
+    // Log fetch errors for debugging
+    if (result.error) {
+      console.error("🌐 API Error Details:", {
+        status: result.error.status,
+        data: result.error.data,
+        error: result.error.error,
+        endpoint: args?.url,
+        baseUrl: apiUrl,
+      });
+    }
+    
+    return result;
+  } catch (error) {
+    console.error("🌐 Fetch Error:", {
+      message: error?.message,
+      stack: error?.stack,
+      endpoint: args?.url,
+      baseUrl: apiUrl,
+    });
+    return {
+      error: {
+        status: "FETCH_ERROR",
+        data: error?.message || "Network request failed",
+        error: "Unable to connect to server. Please check your internet connection.",
+      },
+    };
+  }
+};
+
+// Export with the name expected by other files
+const baseQueryWithType = baseQueryWithErrorHandling;
+export default baseQueryWithType;

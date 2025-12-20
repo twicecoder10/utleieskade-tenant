@@ -33,6 +33,7 @@ const ForgotPasswordScreen = () => {
   const [newPassword, setNewPassword] = useState("");
   const [showOTP, setShowOTP] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
+  const [resetToken, setResetToken] = useState("");
 
   const [forgotPassword, { isLoading: isSendingEmail }] =
     useForgotPasswordMutation();
@@ -48,15 +49,23 @@ const ForgotPasswordScreen = () => {
     }
 
     try {
-      await forgotPassword({ userEmail: email }).unwrap();
+      const response = await forgotPassword({ userEmail: email }).unwrap();
+      console.log("Password reset email sent:", response);
       setShowOTP(true);
+      Alert.alert(
+        "Email Sent",
+        "A verification code has been sent to your email address."
+      );
     } catch (error: any) {
       console.error("Failed to send reset email:", error);
-      Alert.alert(
-        "Error",
-        error?.data?.message ||
-          "Failed to send reset email. Please try again later."
-      );
+      const errorMessage = 
+        error?.data?.message || 
+        error?.error || 
+        error?.status === "FETCH_ERROR" 
+          ? "Unable to connect to server. Please check your internet connection."
+          : "Failed to send reset email. Please try again later.";
+      
+      Alert.alert("Error", errorMessage);
     }
   };
 
@@ -66,8 +75,16 @@ const ForgotPasswordScreen = () => {
       return;
     }
 
+    if (!email) {
+      Alert.alert("Error", "Email is required");
+      return;
+    }
+
     try {
-      await verifyResetPassword({ token: otp }).unwrap();
+      const response = await verifyResetPassword({ token: otp, userEmail: email }).unwrap();
+      // Store the reset token from the response
+      const token = response?.data?.token || response?.token || otp;
+      setResetToken(token);
       setShowNewPassword(true);
     } catch (error: any) {
       console.error("Failed to verify OTP:", error);
@@ -84,8 +101,13 @@ const ForgotPasswordScreen = () => {
       return;
     }
 
+    if (!resetToken) {
+      Alert.alert("Error", "Reset token is missing. Please verify OTP again.");
+      return;
+    }
+
     try {
-      await resetPassword({ token: otp, userPassword: newPassword }).unwrap();
+      await resetPassword({ token: resetToken, userPassword: newPassword }).unwrap();
       Alert.alert("Success", "Your password has been reset successfully.");
       router.push("/auth");
     } catch (error: any) {

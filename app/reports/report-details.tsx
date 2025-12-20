@@ -15,6 +15,7 @@ import Header from "@/components/ui/Header";
 import { useGetCaseDetailsQuery } from "@/slice/cases/index.service";
 import { getApiUrl } from "@/utils/apiUrl";
 import { useAppSelector } from "@/store/store";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 const ReportDetails = () => {
   const params = useLocalSearchParams();
@@ -277,9 +278,13 @@ const ReportDetails = () => {
                                 className="relative"
                               >
                                 <Image
-                                  source={{ uri: imageUrl }}
+                                  source={{ 
+                                    uri: imageUrl,
+                                    cache: 'force-cache'
+                                  }}
                                   className="w-24 h-24 rounded-lg"
                                   resizeMode="cover"
+                                  defaultSource={require("@/assets/images/placeholder.png")}
                                   onError={(error) => {
                                     console.error("Failed to load image:", imageUrl, error);
                                   }}
@@ -321,6 +326,52 @@ const ReportDetails = () => {
                 </Text>
               )}
             </View>
+          </View>
+        )}
+
+        {/* Inspector Report Section */}
+        {caseData.reports && caseData.reports.length > 0 && (
+          <View className="p-4 mt-4 bg-white rounded-2xl border border-[#E2E2E2]">
+            <Text className="text-lg font-semibold text-neutral-900 mb-4">
+              Inspector Report
+            </Text>
+            
+            {caseData.reports.map((report: any, index: number) => (
+              <View key={report.reportId || index} className="gap-3 mb-4">
+                {report.reportDescription && (
+                  <View>
+                    <Text className="text-xs text-neutral-500 mb-1">Report Description</Text>
+                    <Text className="text-sm text-neutral-900">
+                      {report.reportDescription}
+                    </Text>
+                  </View>
+                )}
+                
+                {report.reportId && (
+                  <TouchableOpacity
+                    onPress={async () => {
+                      try {
+                        const token = await AsyncStorage.getItem("token") || await AsyncStorage.getItem("userToken");
+                        const apiUrl = getApiUrl();
+                        // Use the inspector report PDF endpoint - tenant can access their own case reports
+                        const reportUrl = `${apiUrl}/inspectors/reports/${report.reportId}/pdf`;
+                        
+                        // Open PDF in browser or download
+                        const Linking = require("expo-linking").default;
+                        await Linking.openURL(`${reportUrl}`);
+                      } catch (error) {
+                        console.error("Download report error:", error);
+                        Alert.alert("Error", "Failed to download report. Please try again.");
+                      }
+                    }}
+                    className="flex-row items-center justify-center gap-2 bg-primary-500 p-3 rounded-lg mt-2"
+                  >
+                    <AntDesign name="download" size={20} color="white" />
+                    <Text className="text-white font-semibold">Download Report (PDF)</Text>
+                  </TouchableOpacity>
+                )}
+              </View>
+            ))}
           </View>
         )}
 

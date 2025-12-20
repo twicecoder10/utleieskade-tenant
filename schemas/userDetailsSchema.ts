@@ -15,8 +15,9 @@ export const userDetailsSchema = z.object({
     .min(1, { message: "Email is required" }),
   userPhone: z
     .string()
-    .min(10, { message: "Phone number must be at least 10 digits" })
-    .max(15, { message: "Phone number cannot exceed 15 digits" }),
+    .regex(/^\+47\d{8}$/, { 
+      message: "Phone number must be in format: +47 followed by 8 digits (e.g., +4712345678)" 
+    }),
   userPassword: z
     .string()
     // .min(1, { message: "Password is required" })
@@ -28,7 +29,7 @@ export const userDetailsSchema = z.object({
   userAddress: z.string().min(1, { message: "Address is required" }),
   userCity: z.string().min(1, { message: "City is required" }),
   userPostcode: z.string().min(1, { message: "Postcode is required" }),
-  userCountry: z.string().min(1, { message: "Country is required" }),
+  userCountry: z.string().default("Norway"),
   userType: z.enum(["tenant", "landlord"], { 
     errorMap: () => ({ message: "User type must be either tenant or landlord" }) 
   })

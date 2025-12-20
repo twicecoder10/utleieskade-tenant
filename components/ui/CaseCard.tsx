@@ -72,11 +72,16 @@ export const CaseCard = ({
       <View className="flex flex-row items-start gap-3">
         {firstPhotoUrl ? (
           <Image
-            source={{ uri: firstPhotoUrl }}
+            source={{ 
+              uri: firstPhotoUrl.startsWith('http://') || firstPhotoUrl.startsWith('https://') 
+                ? firstPhotoUrl 
+                : `${process.env.EXPO_PUBLIC_API_URL || 'https://utleieskade-api2-production-2915.up.railway.app'}${firstPhotoUrl.startsWith('/') ? '' : '/'}${firstPhotoUrl}`
+            }}
             className="w-12 h-12 rounded-full"
             resizeMode="cover"
-            onError={() => {
-              // Image failed to load, will show placeholder below
+            defaultSource={require("@/assets/images/placeholder.png")}
+            onError={(error) => {
+              console.error("Image load error:", error);
             }}
           />
         ) : (

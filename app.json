@@ -9,13 +9,18 @@
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.utleieskade.tenant",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/splash-icon.png",
         "backgroundColor": "#ffffff"
-      }
+      },
+      "package": "com.twice_coder.utleieskademobile"
     },
     "web": {
       "bundler": "metro",
@@ -42,14 +47,9 @@
         "origin": false
       },
       "eas": {
-        "projectId": "f0760767-e482-467d-80a6-f7455e5583bc"
+        "projectId": "d0056630-f09d-40b5-8715-856f85d523e8"
       }
     },
-    "runtimeVersion": {
-      "policy": "appVersion"
-    },
-    "updates": {
-      "url": "https://u.expo.dev/f0760767-e482-467d-80a6-f7455e5583bc"
-    }
+    "runtimeVersion": "1.0.0"
   }
 }
