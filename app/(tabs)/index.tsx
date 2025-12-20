@@ -54,23 +54,28 @@ export default function HomeScreen() {
     data: dashboardData,
     isLoading: dashboardLoading,
     error: dashboardError,
-  } = useGetDashboardDataQuery({});
+  } = useGetDashboardDataQuery({}, {
+    skip: !isLoggedIn, // Skip query if not logged in
+  });
 
   const {
     data: tenantCases,
     isLoading: tenantCasesLoading,
     error: tenantCasesError,
-  } = useGetTenantCasesQuery({});
+  } = useGetTenantCasesQuery({}, {
+    skip: !isLoggedIn, // Skip query if not logged in
+  });
 
   // Handle different response structures
   const dashboard = dashboardData?.data || dashboardData || {};
-  const user = userData?.data || {};
+  const user = userData?.data || userData || {};
   
-  const activeCases = dashboard?.activeCases?.count || 0;
-  const requiresAttention = dashboard?.activeCases?.requiresAttention || 0;
-  const resolvedIssues = dashboard?.resolvedIssues?.count || 0;
-  const scheduledInspections = dashboard?.scheduledInspections || 0;
-  const nextInspection = dashboard?.nextInspection || "No upcoming inspections";
+  // Only use dashboard data if it's loaded and not in error state
+  const activeCases = dashboardLoading ? 0 : (dashboard?.activeCases?.count || 0);
+  const requiresAttention = dashboardLoading ? 0 : (dashboard?.activeCases?.requiresAttention || 0);
+  const resolvedIssues = dashboardLoading ? 0 : (dashboard?.resolvedIssues?.count || 0);
+  const scheduledInspections = dashboardLoading ? 0 : (dashboard?.scheduledInspections || 0);
+  const nextInspection = dashboardLoading ? "Loading..." : (dashboard?.nextInspection || "No upcoming inspections");
   // Handle different response structures - cases can be in data.cases or directly in data
   const tenants = tenantCases?.data?.cases || tenantCases?.cases || tenantCases?.data || [];
 
@@ -93,6 +98,11 @@ export default function HomeScreen() {
             <Text className="text-red-700 text-sm">
               Error fetching dashboard data
             </Text>
+            {(dashboardError?.data?.message || dashboardError?.error) && (
+              <Text className="text-red-600 text-xs mt-1">
+                {dashboardError?.data?.message || dashboardError?.error}
+              </Text>
+            )}
           </View>
         )}
         {tenantCasesError && (
@@ -173,11 +183,11 @@ export default function HomeScreen() {
             <AntDesign name="warning" size={24} color="#B91C1C" />
           </View>
           <Text className="mt-2 text-3xl font-bold text-neutral-900">
-            {activeCases}
+            {dashboardLoading ? "..." : activeCases}
           </Text>
 
           <Text className="mt-1 text-sm text-neutral-500">
-            {requiresAttention} {t("requires attention", language)}
+            {dashboardLoading ? t("Loading...", language) : `${requiresAttention} ${t("requires attention", language)}`}
           </Text>
         </View>
 
@@ -194,7 +204,7 @@ export default function HomeScreen() {
             />
           </View>
           <Text className="mt-2 text-3xl font-bold text-neutral-900">
-            {resolvedIssues}
+            {dashboardLoading ? "..." : resolvedIssues}
           </Text>
 
           <Text className="mt-1 text-sm text-neutral-500">{t("Last 30 days", language)}</Text>
@@ -209,7 +219,7 @@ export default function HomeScreen() {
             <AntDesign name="calendar" size={24} color="#2387D4" />
           </View>
           <Text className="mt-2 text-3xl font-bold text-neutral-900">
-            {scheduledInspections}
+            {dashboardLoading ? "..." : scheduledInspections}
           </Text>
           <View className="flex-row gap-1 items-center mt-1">
             <Text className="text-sm text-primary-500">{t("Next:", language)}</Text>
@@ -269,28 +279,38 @@ export default function HomeScreen() {
                 Error fetching reports
               </Text>
             ) : tenants?.length > 0 ? (
-              tenants.map((caseItem: any, index: number) => (
-                <CaseCard
-                  key={caseItem.caseId || caseItem.caseID || index}
-                  status={caseItem.status || caseItem.caseStatus || "open"}
-                  location={caseItem.damages?.[0]?.damageLocation || caseItem.location || "Unknown location"}
-                  reportTime={caseItem.reportTime || 0}
-                  photoCount={caseItem.numPhotos || caseItem.photoCount || 0}
-                  priority={caseItem.priority || caseItem.urgency || caseItem.urgencyLevel || "moderate"}
-                  isRecent={false}
-                  caseTitle={caseItem.caseTitle || caseItem.caseDescription || "Untitled Case"}
-                  propertyAddress={caseItem.property?.propertyAddress || caseItem.propertyAddress || ""}
-                  onPress={() => {
-                    const caseId = caseItem.caseId || caseItem.caseID;
-                    if (caseId) {
-                      router.push({
-                        pathname: "/reports/report-details",
-                        params: { caseId }
-                      });
-                    }
-                  }}
-                />
-              ))
+              tenants.map((caseItem: any, index: number) => {
+                // Get first photo URL from various possible locations
+                const firstPhotoUrl = 
+                  caseItem.firstPhotoUrl ||
+                  caseItem.damages?.[0]?.damagePhotos?.[0]?.photoUrl ||
+                  caseItem.damages?.find((d: any) => d.damagePhotos?.[0]?.photoUrl)?.damagePhotos?.[0]?.photoUrl ||
+                  null;
+                
+                return (
+                  <CaseCard
+                    key={caseItem.caseId || caseItem.caseID || index}
+                    status={caseItem.status || caseItem.caseStatus || "open"}
+                    location={caseItem.damages?.[0]?.damageLocation || caseItem.location || "Unknown location"}
+                    reportTime={caseItem.reportTime || 0}
+                    photoCount={caseItem.numPhotos || caseItem.photoCount || 0}
+                    priority={caseItem.priority || caseItem.urgency || caseItem.urgencyLevel || "moderate"}
+                    isRecent={false}
+                    caseTitle={caseItem.caseTitle || caseItem.caseDescription || "Untitled Case"}
+                    propertyAddress={caseItem.property?.propertyAddress || caseItem.propertyAddress || ""}
+                    firstPhotoUrl={firstPhotoUrl}
+                    onPress={() => {
+                      const caseId = caseItem.caseId || caseItem.caseID;
+                      if (caseId) {
+                        router.push({
+                          pathname: "/reports/report-details",
+                          params: { caseId }
+                        });
+                      }
+                    }}
+                  />
+                );
+              })
             ) : (
               <Text className="text-base text-neutral-500 text-center">
                 No submitted reports found

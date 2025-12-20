@@ -14,16 +14,20 @@ import { router, useLocalSearchParams } from "expo-router";
 import Header from "@/components/ui/Header";
 import { useGetCaseDetailsQuery } from "@/slice/cases/index.service";
 import { getApiUrl } from "@/utils/apiUrl";
+import { useAppSelector } from "@/store/store";
 
 const ReportDetails = () => {
   const params = useLocalSearchParams();
   const caseId = params.caseId as string;
+  const { isLoggedIn } = useAppSelector((state) => state.user);
   const [imageViewer, setImageViewer] = useState<{
     open: boolean;
     imageUrl: string;
   }>({ open: false, imageUrl: "" });
 
-  const { data, isLoading, error } = useGetCaseDetailsQuery(caseId);
+  const { data, isLoading, error } = useGetCaseDetailsQuery(caseId, {
+    skip: !isLoggedIn || !caseId, // Skip query if not logged in or no caseId
+  });
 
   const caseData = data?.data;
 
@@ -248,9 +252,14 @@ const ReportDetails = () => {
                       <ScrollView horizontal showsHorizontalScrollIndicator={false}>
                         <View className="flex-row gap-2">
                           {damage.damagePhotos.map((photo: any, photoIndex: number) => {
-                            const imageUrl = photo.photoUrl.startsWith('http')
-                              ? photo.photoUrl
-                              : `${apiUrl}${photo.photoUrl}`;
+                            // Handle photo URLs - could be full URL (Azure) or relative path
+                            let imageUrl = photo.photoUrl;
+                            if (imageUrl && !imageUrl.startsWith('http://') && !imageUrl.startsWith('https://')) {
+                              // If relative path, prepend API URL
+                              imageUrl = imageUrl.startsWith('/') 
+                                ? `${apiUrl}${imageUrl}` 
+                                : `${apiUrl}/${imageUrl}`;
+                            }
                             
                             return (
                               <TouchableOpacity

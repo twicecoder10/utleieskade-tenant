@@ -14,6 +14,7 @@ export const CaseCard = ({
   isRecent,
   caseTitle,
   propertyAddress,
+  firstPhotoUrl,
   onPress,
 }: {
   status: string;
@@ -24,6 +25,7 @@ export const CaseCard = ({
   isRecent: boolean;
   caseTitle: string;
   propertyAddress: string;
+  firstPhotoUrl?: string | null;
   onPress?: () => void;
 }) => {
   const statusStyles: Record<
@@ -68,12 +70,20 @@ export const CaseCard = ({
       className="bg-white p-4 border-b border-gray-200"
     >
       <View className="flex flex-row items-start gap-3">
-        <Image
-          source={{
-            uri: "https://thesinkboutique.com/cdn/shop/products/wj4kcp1ofbnpkslovd8h.jpg?v=1638983173",
-          }}
-          className="w-12 h-12 rounded-full"
-        />
+        {firstPhotoUrl ? (
+          <Image
+            source={{ uri: firstPhotoUrl }}
+            className="w-12 h-12 rounded-full"
+            resizeMode="cover"
+            onError={() => {
+              // Image failed to load, will show placeholder below
+            }}
+          />
+        ) : (
+          <View className="w-12 h-12 rounded-full bg-gray-200 items-center justify-center">
+            <AntDesign name="picture" size={20} color="#9CA3AF" />
+          </View>
+        )}
         <View className="flex-1">
           <View className="flex flex-row justify-between items-start">
             <Text className="text-base font-medium text-gray-900">
