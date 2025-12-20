@@ -44,17 +44,31 @@ const SignupScreen = () => {
 
   const validateField = (field: string, value: string) => {
     try {
-      const schema = userDetailsSchema.shape.pick({ [field]: true });
-      schema.parse({ [field]: value });
+      // Get current form values
+      const currentFormData = {
+        userFirstName: field === "userFirstName" ? value : userFirstName,
+        userLastName: field === "userLastName" ? value : userLastName,
+        userEmail: field === "userEmail" ? value : userEmail,
+        userPhone: field === "userPhone" ? value : userPhone,
+        userPassword: field === "userPassword" ? value : userPassword,
+        confirmPassword: field === "confirmPassword" ? value : confirmPassword,
+        userAddress: field === "userAddress" ? value : userAddress,
+        userCity: field === "userCity" ? value : userCity,
+        userPostcode: field === "userPostcode" ? value : userPostcode,
+        userCountry: userCountry || "Norway",
+        userType: "tenant" as const,
+      };
+      
+      userDetailsSchema.parse(currentFormData);
       setErrors((prev) => ({ ...prev, [field]: "" }));
       return true;
     } catch (error) {
       if (error instanceof ZodError) {
-        const fieldError = error.errors[0]?.message || `Invalid ${field}`;
+        const fieldError = error.errors.find(e => e.path.includes(field))?.message || `Invalid ${field}`;
         setErrors((prev) => ({ ...prev, [field]: fieldError }));
         return false;
       }
-      return true;
+      return false;
     }
   };
 

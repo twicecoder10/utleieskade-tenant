@@ -77,7 +77,7 @@ const ReportDetails = () => {
       <SafeAreaView className="flex-1 p-4 pb-6 bg-white">
         <Header title="Case Details" showBack />
         <View className="flex-1 items-center justify-center">
-          <AntDesign name="exclamationcircle" size={64} color="#EF4444" />
+          <AntDesign name="exclamation-circle" size={64} color="#EF4444" />
           <Text className="text-lg text-red-600 mt-4">Error loading case</Text>
           <Text className="text-sm text-neutral-500 mt-2">
             {error ? "Failed to load case details" : "Case not found"}

@@ -48,9 +48,6 @@ export const translations: Record<Language, Record<string, string>> = {
     "Error fetching tenant cases": "Feil ved henting av saker",
     "Error fetching dashboard data": "Feil ved henting av dashboarddata",
     "Error fetching user data": "Feil ved henting av brukerdata",
-    "Report New Case": "Rapporter ny sak",
-    "View All Cases": "Se alle saker",
-    "Download Receipts": "Last ned kvitteringer",
   },
   English: {
     // All English strings remain the same
@@ -66,9 +63,6 @@ export const translations: Record<Language, Record<string, string>> = {
     "Next:": "Next:",
     "No upcoming inspections": "No upcoming inspections",
     "Quick Action": "Quick Action",
-    "Report New Case": "Report New Case",
-    "View All Cases": "View All Cases",
-    "Download Receipts": "Download Receipts",
     "Submitted Cases": "Submitted Cases",
     "View all": "View all",
     "Frequently asked questions": "Frequently asked questions",
@@ -97,9 +91,6 @@ export const translations: Record<Language, Record<string, string>> = {
     "Error fetching tenant cases": "Error fetching tenant cases",
     "Error fetching dashboard data": "Error fetching dashboard data",
     "Error fetching user data": "Error fetching user data",
-    "Report New Case": "Report New Case",
-    "View All Cases": "View All Cases",
-    "Download Receipts": "Download Receipts",
   },
 };
 

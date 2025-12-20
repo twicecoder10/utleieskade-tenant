@@ -37,7 +37,7 @@ export const casesApi = createApi({
       query: (receiptId) => ({
         url: `/tenants/receipts/${receiptId}/download`,
         method: "GET",
-        responseHandler: async (response) => {
+        responseHandler: async (response: any) => {
           // In React Native, we'll return the URL instead of the blob
           // The actual download will be handled by Linking.openURL
           const apiUrl = process.env.EXPO_PUBLIC_API_URL || "https://utleieskade-api2-production-2915.up.railway.app";

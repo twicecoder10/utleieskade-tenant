@@ -31,23 +31,23 @@ const baseQuery = fetchBaseQuery({
 });
 
 // Enhanced error handling wrapper
-const baseQueryWithErrorHandling = async (args, api, extraOptions) => {
+const baseQueryWithErrorHandling = async (args: any, api: any, extraOptions: any) => {
   try {
     const result = await baseQuery(args, api, extraOptions);
     
     // Log fetch errors for debugging
     if (result.error) {
       console.error("🌐 API Error Details:", {
-        status: result.error.status,
-        data: result.error.data,
-        error: result.error.error,
+        status: (result.error as any).status,
+        data: (result.error as any).data,
+        error: (result.error as any).error,
         endpoint: args?.url,
         baseUrl: apiUrl,
       });
     }
     
     return result;
-  } catch (error) {
+  } catch (error: any) {
     console.error("🌐 Fetch Error:", {
       message: error?.message,
       stack: error?.stack,

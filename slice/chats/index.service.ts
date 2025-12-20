@@ -14,8 +14,6 @@ export const chatApi = createApi({
         method: "GET",
       }),
       providesTags: ["chats"],
-      // Poll every 5 seconds for real-time updates
-      pollingInterval: 5000,
     }),
 
     fetchMessages: builder.query({
@@ -26,8 +24,6 @@ export const chatApi = createApi({
       providesTags: (result, error, conversationId) => [
         { type: "messages", id: conversationId },
       ],
-      // Poll every 3 seconds for real-time message updates
-      pollingInterval: 3000,
     }),
 
     sendMessage: builder.mutation({

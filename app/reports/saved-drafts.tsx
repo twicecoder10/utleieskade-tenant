@@ -80,7 +80,7 @@ const SavedDrafts = () => {
       <SafeAreaView className="flex-1 p-4 pb-6 bg-white">
         <Header title="Saved Drafts" showBack />
         <View className="flex-1 items-center justify-center">
-          <AntDesign name="filetext1" size={64} color="#D1D5DB" />
+          <AntDesign name="file-text" size={64} color="#D1D5DB" />
           <Text className="text-lg text-neutral-500 mt-4">
             No saved drafts
           </Text>
@@ -140,7 +140,7 @@ const SavedDrafts = () => {
                 </View>
                 {draft.isUrgent && (
                   <View className="flex-row items-center gap-1">
-                    <AntDesign name="exclamationcircle" size={14} color="#B91C1C" />
+                    <AntDesign name="exclamation-circle" size={14} color="#B91C1C" />
                     <Text className="text-xs text-red-600">Urgent</Text>
                   </View>
                 )}

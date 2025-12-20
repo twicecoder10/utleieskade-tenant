@@ -29,7 +29,8 @@ const ReceiptsScreen = () => {
       const downloadUrl = `${apiUrl}/tenants/receipts/${receiptId}/download`;
       
       // Use expo-file-system to download the file directly
-      const fileUri = `${FileSystem.documentDirectory}receipt-${receiptId}.pdf`;
+      const documentDir = (FileSystem as any).documentDirectory || (FileSystem as any).cacheDirectory || '';
+      const fileUri = `${documentDir}receipt-${receiptId}.pdf`;
       
       const downloadResult = await FileSystem.downloadAsync(downloadUrl, fileUri, {
         headers: {
@@ -83,7 +84,7 @@ const ReceiptsScreen = () => {
       <SafeAreaView className="flex-1 p-4 pb-6 bg-white">
         <Header title="Receipts" showBack />
         <View className="flex-1 items-center justify-center">
-          <AntDesign name="filetext1" size={64} color="#D1D5DB" />
+          <AntDesign name="file-text" size={64} color="#D1D5DB" />
           <Text className="text-lg text-neutral-500 mt-4">No receipts found</Text>
           <Text className="text-sm text-neutral-400 mt-2 text-center">
             Your purchase receipts will appear here

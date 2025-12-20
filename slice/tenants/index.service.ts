@@ -16,13 +16,14 @@ export const tenantsApi = createApi({
       providesTags: ["dashboard"],
     }),
 
-    getTenantCases: builder.query({
-      query: ({ search, status, urgency } = {}) => {
-        const params = new URLSearchParams();
-        if (search) params.append("search", search);
-        if (status) params.append("status", status);
-        if (urgency) params.append("urgency", urgency);
-        const queryString = params.toString();
+    getTenantCases: builder.query<any, { search?: string; status?: string; urgency?: string } | void>({
+      query: (queryParams = {}) => {
+        const { search, status, urgency } = queryParams || {};
+        const urlParams = new URLSearchParams();
+        if (search) urlParams.append("search", search);
+        if (status) urlParams.append("status", status);
+        if (urgency) urlParams.append("urgency", urgency);
+        const queryString = urlParams.toString();
         return {
           url: `/tenants/getCases${queryString ? `?${queryString}` : ""}`,
           method: "GET",
@@ -45,14 +46,15 @@ export const tenantsApi = createApi({
       }),
     }),
 
-    getNotifications: builder.query({
-      query: ({ page = 1, limit = 20, isRead } = {}) => {
-        const params = new URLSearchParams();
-        params.append("page", page.toString());
-        params.append("limit", limit.toString());
-        if (isRead !== undefined) params.append("isRead", isRead.toString());
+    getNotifications: builder.query<any, { page?: number; limit?: number; isRead?: boolean } | void>({
+      query: (queryParams = {}) => {
+        const { page = 1, limit = 20, isRead } = queryParams || {};
+        const urlParams = new URLSearchParams();
+        urlParams.append("page", page.toString());
+        urlParams.append("limit", limit.toString());
+        if (isRead !== undefined) urlParams.append("isRead", isRead.toString());
         return {
-          url: `/notifications?${params.toString()}`,
+          url: `/notifications?${urlParams.toString()}`,
           method: "GET",
         };
       },

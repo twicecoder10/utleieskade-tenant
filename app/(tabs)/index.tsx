@@ -69,12 +69,13 @@ export default function HomeScreen() {
     skip: !isLoggedIn, // Skip query if not logged in
   });
 
-  const { data: unreadCountData } = useGetUnreadNotificationCountQuery({}, {
+  const { data: unreadCountData, error: notificationError } = useGetUnreadNotificationCountQuery({}, {
     skip: !isLoggedIn,
     pollingInterval: 30000, // Poll every 30 seconds for new notifications
   });
   
-  const unreadCount = unreadCountData?.data?.count || unreadCountData?.count || 0;
+  // Safely extract unread count, handle different response structures
+  const unreadCount = notificationError ? 0 : (unreadCountData?.data?.count || unreadCountData?.count || unreadCountData || 0);
 
   // Refetch dashboard and cases when screen comes into focus
   useFocusEffect(
@@ -118,9 +119,9 @@ export default function HomeScreen() {
             <Text className="text-red-700 text-sm">
               Error fetching dashboard data
             </Text>
-            {(dashboardError?.data?.message || dashboardError?.error) && (
+            {((dashboardError as any)?.data?.message || (dashboardError as any)?.error) && (
               <Text className="text-red-600 text-xs mt-1">
-                {dashboardError?.data?.message || dashboardError?.error}
+                {(dashboardError as any)?.data?.message || (dashboardError as any)?.error}
               </Text>
             )}
           </View>

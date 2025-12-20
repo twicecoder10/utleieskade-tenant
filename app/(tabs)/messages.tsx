@@ -213,7 +213,7 @@ export default function MessagesScreen() {
   const [selectedUser, setSelectedUser] = useState<ChatUser | null>(null);
   const [newMessage, setNewMessage] = useState("");
   const [isTyping, setIsTyping] = useState(false);
-  const typingTimeout = useRef<NodeJS.Timeout>();
+  const typingTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
   const scrollViewRef = useRef<ScrollView>(null);
   const insets = useSafeAreaInsets(); // Must be called at top level, not conditionally
 
@@ -348,7 +348,7 @@ export default function MessagesScreen() {
   const simulateTyping = () => {
     setIsTyping(true);
     if (typingTimeout.current) clearTimeout(typingTimeout.current);
-    typingTimeout.current = setTimeout(() => setIsTyping(false), 3000);
+    typingTimeout.current = setTimeout(() => setIsTyping(false), 3000) as ReturnType<typeof setTimeout>;
   };
 
   const pickImage = async () => {
