@@ -29,7 +29,7 @@ if (Platform.OS !== "web") {
   }
 }
 
-const STRIPE_PUBLISHABLE_KEY = "pk_test_WVWA7jPmzISjavPB62KpTAs400mFLVsnk1";
+const STRIPE_PUBLISHABLE_KEY = "pk_test_51S8GeZ7JTnPFD5f8GW16A2EGd6kbnfmJpBRtH9jj0myVq3vzoK0Wp7mCgbSOETBohD6YJXjUSLwjVdmWB3OlYgPq00GSl1t760";
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
