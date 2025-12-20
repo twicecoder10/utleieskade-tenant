@@ -16,6 +16,7 @@ import * as ImagePicker from "expo-image-picker";
 
 import { useReportCasesMutation } from "@/slice/cases/index.service";
 import { useUploadFileMutation } from "@/slice/files/index.service";
+import { useGetPlatformPricingSettingsQuery } from "@/slice/auth/index.service";
 import { Alert } from "react-native";
 import { calculatePricing } from "@/utils/pricing";
 import { saveDraft, generateDraftId, DraftCase } from "@/utils/draftStorage";
@@ -52,9 +53,20 @@ const ReportDamage = () => {
 
   const [reportCases] = useReportCasesMutation();
   const [uploadFile] = useUploadFileMutation();
+  
+  // Fetch platform pricing settings
+  const { data: pricingSettingsData } = useGetPlatformPricingSettingsQuery({});
+  const pricingConfig = pricingSettingsData?.data 
+    ? {
+        basePrice: pricingSettingsData.data.basePrice || 100,
+        urgentFee: pricingSettingsData.data.hasteCaseFee || 50,
+        standardAssessmentPrice: 0,
+        detailedAssessmentPrice: 200,
+      }
+    : undefined;
 
   // Calculate pricing based on rooms, assessment level, and urgency
-  const pricing = calculatePricing(rooms.length, assessmentLevel, isUrgent);
+  const pricing = calculatePricing(rooms.length, assessmentLevel, isUrgent, pricingConfig);
 
   const updateRoom = (roomId: string, updates: Partial<DamageRoom>) => {
     setRooms((prev) =>
@@ -633,7 +645,9 @@ const ReportDamage = () => {
             {isUrgent && (
               <View className="mt-2 flex-row items-center justify-between gap-4 pb-2 border-b border-[#E2E2E2]">
                 <Text className="text-sm text-neutral-500">Urgent Fee</Text>
-                <Text className="text-sm text-neutral-500">50.00 NOK</Text>
+                <Text className="text-sm text-neutral-500">
+                  {pricingConfig?.urgentFee?.toFixed(2) || "50.00"} NOK
+                </Text>
               </View>
             )}
 

@@ -14,6 +14,7 @@ import Button from "@/components/ui/Button";
 import Header from "@/components/ui/Header";
 import { calculatePricing } from "@/utils/pricing";
 import { getApiUrl } from "@/utils/apiUrl";
+import { useGetPlatformPricingSettingsQuery } from "@/slice/auth/index.service";
 
 const ReportPreview = () => {
   const params = useLocalSearchParams();
@@ -32,7 +33,18 @@ const ReportPreview = () => {
   const optionalLandlordName = params.optionalLandlordName as string;
   const totalPrice = parseFloat(params.totalPrice as string) || 0;
 
-  const pricing = calculatePricing(rooms.length, assessmentLevel, isUrgent);
+  // Fetch platform pricing settings
+  const { data: pricingSettingsData } = useGetPlatformPricingSettingsQuery({});
+  const pricingConfig = pricingSettingsData?.data 
+    ? {
+        basePrice: pricingSettingsData.data.basePrice || 100,
+        urgentFee: pricingSettingsData.data.hasteCaseFee || 50,
+        standardAssessmentPrice: 0,
+        detailedAssessmentPrice: 200,
+      }
+    : undefined;
+
+  const pricing = calculatePricing(rooms.length, assessmentLevel, isUrgent, pricingConfig);
 
   const handleEdit = () => {
     router.back();
@@ -292,7 +304,9 @@ const ReportPreview = () => {
             {isUrgent && (
               <View className="flex-row justify-between pb-2 border-b border-[#E2E2E2]">
                 <Text className="text-sm text-neutral-500">Urgent Fee</Text>
-                <Text className="text-sm text-neutral-900">50.00 NOK</Text>
+                <Text className="text-sm text-neutral-900">
+                  {pricingConfig?.urgentFee?.toFixed(2) || "50.00"} NOK
+                </Text>
               </View>
             )}
 

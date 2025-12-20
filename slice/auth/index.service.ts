@@ -66,19 +66,19 @@ export const authApi = createApi({
 
     // Reset Password Endpoint
     resetPassword: builder.mutation({
-      query: ({ token, password }) => ({
+      query: ({ token, userPassword }) => ({
         url: `/users/reset-password`,
         method: "PUT",
-        body: { password, token },
+        body: { userPassword, token },
       }),
     }),
 
     // Verify Password Reset Link Endpoint
     verifyResetPassword: builder.mutation({
-      query: ({ token }) => ({
+      query: ({ token, userEmail }) => ({
         url: `/users/verify-password-reset-link`,
-        method: "GET",
-        body: { token },
+        method: "POST",
+        body: { token, userEmail },
       }),
     }),
 
@@ -140,10 +140,38 @@ export const authApi = createApi({
 
     // Verify OTP Endpoint
     verifyOtp: builder.mutation({
-      query: () => ({
+      query: (body) => ({
         url: "/otp/verify",
         method: "POST",
+        body,
       }),
+      async onQueryStarted(id, { dispatch, queryFulfilled }) {
+        try {
+          const apiResponse = await queryFulfilled;
+          const { token, user } = apiResponse?.data?.data || apiResponse?.data;
+          if (token) {
+            await AsyncStorage.setItem("token", token);
+            await AsyncStorage.setItem("userToken", token);
+            await AsyncStorage.setItem("isLoggedIn", "true");
+            dispatch(updateUser(user || apiResponse?.data?.data || apiResponse?.data));
+            // Import setLoggedIn from userSlice
+            const { setLoggedIn } = require("../userSlice");
+            dispatch(setLoggedIn(true));
+          }
+        } catch (error) {
+          console.error("Verify OTP Error:", error);
+        }
+      },
+      invalidatesTags: ["profile"],
+    }),
+
+    // Get Platform Pricing Settings Endpoint
+    getPlatformPricingSettings: builder.query({
+      query: () => ({
+        url: "/tenants/platform-settings",
+        method: "GET",
+      }),
+      providesTags: ["settings"],
     }),
   }),
 });
@@ -161,5 +189,6 @@ export const {
   useRequestOtpMutation,
   useResendOtpMutation,
   useVerifyOtpMutation,
+  useGetPlatformPricingSettingsQuery,
 } = authApi;
 
