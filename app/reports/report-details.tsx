@@ -254,11 +254,20 @@ const ReportDetails = () => {
                           {damage.damagePhotos.map((photo: any, photoIndex: number) => {
                             // Handle photo URLs - could be full URL (Azure) or relative path
                             let imageUrl = photo.photoUrl;
-                            if (imageUrl && !imageUrl.startsWith('http://') && !imageUrl.startsWith('https://')) {
-                              // If relative path, prepend API URL
-                              imageUrl = imageUrl.startsWith('/') 
-                                ? `${apiUrl}${imageUrl}` 
-                                : `${apiUrl}/${imageUrl}`;
+                            if (imageUrl && typeof imageUrl === 'string') {
+                              imageUrl = imageUrl.trim();
+                              // Only prepend API URL if it's not already a full URL (Azure URLs should already be full URLs)
+                              if (imageUrl && !imageUrl.startsWith('http://') && !imageUrl.startsWith('https://')) {
+                                if (apiUrl) {
+                                  imageUrl = imageUrl.startsWith('/') 
+                                    ? `${apiUrl}${imageUrl}` 
+                                    : `${apiUrl}/${imageUrl}`;
+                                }
+                              }
+                            }
+                            
+                            if (!imageUrl) {
+                              return null;
                             }
                             
                             return (
@@ -271,6 +280,9 @@ const ReportDetails = () => {
                                   source={{ uri: imageUrl }}
                                   className="w-24 h-24 rounded-lg"
                                   resizeMode="cover"
+                                  onError={(error) => {
+                                    console.error("Failed to load image:", imageUrl, error);
+                                  }}
                                 />
                                 {photo.description && (
                                   <View className="absolute bottom-0 left-0 right-0 bg-black/50 p-1 rounded-b-lg">
