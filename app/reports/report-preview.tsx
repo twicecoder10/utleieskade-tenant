@@ -13,6 +13,7 @@ import { router, useLocalSearchParams } from "expo-router";
 import Button from "@/components/ui/Button";
 import Header from "@/components/ui/Header";
 import { calculatePricing } from "@/utils/pricing";
+import { getApiUrl } from "@/utils/apiUrl";
 
 const ReportPreview = () => {
   const params = useLocalSearchParams();
@@ -199,26 +200,53 @@ const ReportPreview = () => {
                   </Text>
                   <ScrollView horizontal showsHorizontalScrollIndicator={false}>
                     <View className="flex-row gap-2">
-                      {room.photos.map((photo: any, photoIndex: number) => (
-                        <TouchableOpacity
-                          key={photoIndex}
-                          onPress={() => openImageViewer(photo.photoUrl)}
-                          className="relative"
-                        >
-                          <Image
-                            source={{ uri: photo.photoUrl }}
-                            className="w-24 h-24 rounded-lg"
-                            resizeMode="cover"
-                          />
-                          {photo.description && (
-                            <View className="absolute bottom-0 left-0 right-0 bg-black/50 p-1 rounded-b-lg">
-                              <Text className="text-xs text-white" numberOfLines={1}>
-                                {photo.description}
-                              </Text>
-                            </View>
-                          )}
-                        </TouchableOpacity>
-                      ))}
+                      {room.photos.map((photo: any, photoIndex: number) => {
+                        // Handle photo URLs - could be local file URI, full URL (Azure), or relative path
+                        let imageUrl = photo?.photoUrl;
+                        
+                        if (!imageUrl) {
+                          // Skip if no photo URL
+                          return null;
+                        }
+                        
+                        // If it's already a full URL (http/https) or local file (file://), use as is
+                        if (!imageUrl.startsWith('http://') && 
+                            !imageUrl.startsWith('https://') && 
+                            !imageUrl.startsWith('file://') &&
+                            !imageUrl.startsWith('content://')) {
+                          // If relative path, prepend API URL
+                          const apiUrl = getApiUrl();
+                          if (apiUrl) {
+                            imageUrl = imageUrl.startsWith('/') 
+                              ? `${apiUrl}${imageUrl}` 
+                              : `${apiUrl}/${imageUrl}`;
+                          }
+                        }
+                        
+                        return (
+                          <TouchableOpacity
+                            key={photoIndex}
+                            onPress={() => openImageViewer(imageUrl)}
+                            className="relative"
+                          >
+                            <Image
+                              source={{ uri: imageUrl }}
+                              className="w-24 h-24 rounded-lg"
+                              resizeMode="cover"
+                              onError={(e) => {
+                                console.error("Failed to load image:", imageUrl);
+                              }}
+                            />
+                            {photo.description && (
+                              <View className="absolute bottom-0 left-0 right-0 bg-black/50 p-1 rounded-b-lg">
+                                <Text className="text-xs text-white" numberOfLines={1}>
+                                  {photo.description}
+                                </Text>
+                              </View>
+                            )}
+                          </TouchableOpacity>
+                        );
+                      }).filter(Boolean)}
                     </View>
                   </ScrollView>
                 </View>
