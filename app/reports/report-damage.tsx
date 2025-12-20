@@ -9,7 +9,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { AntDesign, EvilIcons } from "@expo/vector-icons";
-import { router } from "expo-router";
+import { router, useFocusEffect } from "expo-router";
 import CustomSelect from "@/components/ui/CustomSelect";
 import Button from "@/components/ui/Button";
 import * as ImagePicker from "expo-image-picker";
@@ -54,8 +54,21 @@ const ReportDamage = () => {
   const [reportCases] = useReportCasesMutation();
   const [uploadFile] = useUploadFileMutation();
   
-  // Fetch platform pricing settings
-  const { data: pricingSettingsData } = useGetPlatformPricingSettingsQuery({});
+  // Fetch platform pricing settings - refetch on screen focus to get latest prices
+  const { data: pricingSettingsData, refetch: refetchPricingSettings } = useGetPlatformPricingSettingsQuery({});
+  
+  // Refetch pricing settings when screen comes into focus
+  useFocusEffect(
+    React.useCallback(() => {
+      refetchPricingSettings();
+    }, [refetchPricingSettings])
+  );
+  
+  // Also refetch on mount as a fallback
+  useEffect(() => {
+    refetchPricingSettings();
+  }, []);
+  
   const pricingConfig = pricingSettingsData?.data 
     ? {
         basePrice: pricingSettingsData.data.basePrice || 100,

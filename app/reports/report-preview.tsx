@@ -9,7 +9,7 @@ import {
 import React, { useState, useEffect } from "react";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { AntDesign, EvilIcons } from "@expo/vector-icons";
-import { router, useLocalSearchParams } from "expo-router";
+import { router, useLocalSearchParams, useFocusEffect } from "expo-router";
 import Button from "@/components/ui/Button";
 import Header from "@/components/ui/Header";
 import { calculatePricing } from "@/utils/pricing";
@@ -33,8 +33,21 @@ const ReportPreview = () => {
   const optionalLandlordName = params.optionalLandlordName as string;
   const totalPrice = parseFloat(params.totalPrice as string) || 0;
 
-  // Fetch platform pricing settings
-  const { data: pricingSettingsData } = useGetPlatformPricingSettingsQuery({});
+  // Fetch platform pricing settings - refetch on screen focus to get latest prices
+  const { data: pricingSettingsData, refetch: refetchPricingSettings } = useGetPlatformPricingSettingsQuery({});
+  
+  // Refetch pricing settings when screen comes into focus
+  useFocusEffect(
+    React.useCallback(() => {
+      refetchPricingSettings();
+    }, [refetchPricingSettings])
+  );
+  
+  // Also refetch on mount as a fallback
+  useEffect(() => {
+    refetchPricingSettings();
+  }, []);
+  
   const pricingConfig = pricingSettingsData?.data 
     ? {
         basePrice: pricingSettingsData.data.basePrice || 100,

@@ -172,6 +172,10 @@ export const authApi = createApi({
         method: "GET",
       }),
       providesTags: ["settings"],
+      // Refetch more aggressively to get latest pricing updates
+      refetchOnMountOrArgChange: true,
+      // Poll every 30 seconds to check for pricing updates (optional, can be disabled if too aggressive)
+      // pollingInterval: 30000,
     }),
   }),
 });
