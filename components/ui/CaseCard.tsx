@@ -79,7 +79,6 @@ export const CaseCard = ({
             }}
             className="w-12 h-12 rounded-full"
             resizeMode="cover"
-            defaultSource={require("@/assets/images/placeholder.png")}
             onError={(error) => {
               console.error("Image load error:", error);
             }}

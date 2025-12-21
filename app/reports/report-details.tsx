@@ -284,7 +284,6 @@ const ReportDetails = () => {
                                   }}
                                   className="w-24 h-24 rounded-lg"
                                   resizeMode="cover"
-                                  defaultSource={require("@/assets/images/placeholder.png")}
                                   onError={(error) => {
                                     console.error("Failed to load image:", imageUrl, error);
                                   }}
