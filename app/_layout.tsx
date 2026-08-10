@@ -17,6 +17,9 @@ import { store } from "@/store/store";
 import { useAppDispatch, useAppSelector } from "@/store/store";
 import { checkAuthAsync } from "@/slice/userSlice";
 import { Platform } from "react-native";
+import { initSentry, setSentryUser } from "@/utils/sentry";
+import logger from "@/utils/logger";
+import ErrorBoundary from "@/components/ErrorBoundary";
 
 // Stripe only works on native platforms, not web
 let StripeProvider: any = ({ children }: { children: React.ReactNode }) => <>{children}</>;
@@ -34,6 +37,16 @@ const STRIPE_PUBLISHABLE_KEY = "pk_test_51S8GeZ7JTnPFD5f8GW16A2EGd6kbnfmJpBRtH9j
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
 
+// Initialize Sentry
+if (Platform.OS !== "web") {
+  try {
+    initSentry();
+    logger.info("Sentry initialized successfully");
+  } catch (error) {
+    console.error("Failed to initialize Sentry:", error);
+  }
+}
+
 function RootLayoutContent() {
   const colorScheme = useColorScheme();
   const [isLayoutReady, setIsLayoutReady] = useState(false);
@@ -43,7 +56,7 @@ function RootLayoutContent() {
 
   const router = useRouter();
   const dispatch = useAppDispatch();
-  const { isLoggedIn } = useAppSelector((state) => state.user);
+  const { isLoggedIn, user } = useAppSelector((state) => state.user);
 
   useEffect(() => {
     if (loaded) {
@@ -51,9 +64,20 @@ function RootLayoutContent() {
       setIsLayoutReady(true);
     }
     if (font_error) {
-      console.log("There was an error in loading fonts");
+      logger.error("Font loading error", font_error);
     }
   }, [loaded]);
+
+  // Set Sentry user context when user is available
+  useEffect(() => {
+    if (user && Platform.OS !== "web") {
+      try {
+        setSentryUser(user);
+      } catch (error) {
+        logger.error("Failed to set Sentry user in layout", error);
+      }
+    }
+  }, [user]);
 
   useEffect(() => {
     if (isLayoutReady) {
@@ -140,10 +164,12 @@ function RootLayoutContent() {
 
 export default function RootLayout() {
   return (
-    <Provider store={store}>
-      <StripeProvider publishableKey={STRIPE_PUBLISHABLE_KEY}>
-        <RootLayoutContent />
-      </StripeProvider>
-    </Provider>
+    <ErrorBoundary>
+      <Provider store={store}>
+        <StripeProvider publishableKey={STRIPE_PUBLISHABLE_KEY}>
+          <RootLayoutContent />
+        </StripeProvider>
+      </Provider>
+    </ErrorBoundary>
   );
 }

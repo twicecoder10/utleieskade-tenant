@@ -22,7 +22,8 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useAppDispatch } from "@/store/store";
 import { updateUser, setLoggedIn } from "@/slice/userSlice";
 import { StatusBar } from "expo-status-bar";
-import { useLoginMutation } from "@/slice/auth/index.service";
+import { useLoginMutation, useOauthLoginMutation } from "@/slice/auth/index.service";
+import { signInWithGoogle, signInWithApple } from "@/utils/oauth";
 
 const SignInScreen = () => {
   const [userEmail, setUserEmail] = useState("");
@@ -32,6 +33,7 @@ const SignInScreen = () => {
 
   const dispatch = useAppDispatch();
   const [login, { isLoading }] = useLoginMutation();
+  const [oauthLogin, { isLoading: isOAuthLoading }] = useOauthLoginMutation();
 
   const handleLogin = async () => {
     setErrorMessage("");
@@ -70,6 +72,55 @@ const SignInScreen = () => {
       setTimeout(() => {
         setErrorMessage("");
       }, 3000);
+    }
+  };
+
+  const handleOAuthLogin = async (oauthUser: any, provider: "google" | "apple") => {
+    try {
+      const response = await oauthLogin({
+        email: oauthUser.email,
+        firstName: oauthUser.firstName || oauthUser.name?.split(" ")[0] || "",
+        lastName: oauthUser.lastName || oauthUser.name?.split(" ").slice(1).join(" ") || "",
+        provider,
+        providerId: oauthUser.id,
+        picture: oauthUser.picture,
+      }).unwrap();
+
+      const { token, user, isNewUser } = response?.data || response;
+
+      if (token) {
+        await AsyncStorage.setItem("token", token);
+        await AsyncStorage.setItem("userToken", token);
+        await AsyncStorage.setItem("isLoggedIn", "true");
+
+        dispatch(updateUser(user || response?.data));
+        dispatch(setLoggedIn(true));
+
+        // If new user or missing address info, prompt to complete profile
+        if (isNewUser || !user?.userAddress || !user?.userCity || !user?.userPostcode) {
+          Alert.alert(
+            "Complete Your Profile",
+            "Please update your address information in your profile settings.",
+            [
+              {
+                text: "OK",
+                onPress: () => {
+                  router.replace("/(tabs)/settings");
+                },
+              },
+            ]
+          );
+        } else {
+          router.replace("/(tabs)");
+        }
+      }
+    } catch (error: any) {
+      console.error("OAuth Login Error:", error);
+      Alert.alert(
+        "Login Failed",
+        error?.data?.message || "Failed to sign in. Please try again.",
+        [{ text: "OK" }]
+      );
     }
   };
 
@@ -187,20 +238,42 @@ const SignInScreen = () => {
         {/* social login */}
         <View className="gap-4">
           <Button
-            label="Sign Up with Google"
-            onPress={() => console.log("Google Sign Up")}
+            label={isOAuthLoading ? "Signing in..." : "Sign In with Google"}
+            onPress={async () => {
+              try {
+                const oauthUser = await signInWithGoogle();
+                if (oauthUser) {
+                  await handleOAuthLogin(oauthUser, "google");
+                }
+              } catch (error: any) {
+                Alert.alert("Error", error?.message || "Failed to sign in with Google");
+              }
+            }}
             iconImage={require("@/assets/images/google.png")}
             style="bg-white border border-[#E2E2E2] p-3 rounded-full w-full"
             textStyle="font-bold text-neutral-900 text-xl"
+            disabled={isOAuthLoading}
           />
 
-          <Button
-            label="Sign Up with Apple"
-            onPress={() => console.log("Apple Sign Up")}
-            iconImage={require("@/assets/images/apple.png")}
-            style="bg-black p-3 rounded-full w-full"
-            textStyle="font-bold text-white text-xl"
-          />
+          {Platform.OS === "ios" && (
+            <Button
+              label={isOAuthLoading ? "Signing in..." : "Sign In with Apple"}
+              onPress={async () => {
+                try {
+                  const oauthUser = await signInWithApple();
+                  if (oauthUser) {
+                    await handleOAuthLogin(oauthUser, "apple");
+                  }
+                } catch (error: any) {
+                  Alert.alert("Error", error?.message || "Failed to sign in with Apple");
+                }
+              }}
+              iconImage={require("@/assets/images/apple.png")}
+              style="bg-black p-3 rounded-full w-full"
+              textStyle="font-bold text-white text-xl"
+              disabled={isOAuthLoading}
+            />
+          )}
         </View>
 
         {/* terms */}

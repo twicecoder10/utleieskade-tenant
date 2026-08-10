@@ -1,6 +1,8 @@
 import { createSlice, PayloadAction, createAsyncThunk } from "@reduxjs/toolkit";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { router } from "expo-router";
+import { Platform } from "react-native";
+import { setSentryUser, clearSentryUser } from "@/utils/sentry";
 
 interface UserState {
   user: Record<string, any> | null;
@@ -39,13 +41,29 @@ const userSlice = createSlice({
       state.user = null;
       state.isLoggedIn = false;
       AsyncStorage.removeItem("userToken");
+      // Clear Sentry user context
+      if (Platform.OS !== "web") {
+        try {
+          clearSentryUser();
+        } catch (error) {
+          console.error("Failed to clear Sentry user:", error);
+        }
+      }
       router.replace("/auth");
     },
     setLoggedIn: (state, action: PayloadAction<boolean>) => {
       state.isLoggedIn = action.payload;
     },
     updateUser: (state, action: PayloadAction<any>) => {
-      state.user = action.payload; 
+      state.user = action.payload;
+      // Set Sentry user context
+      if (action.payload && Platform.OS !== "web") {
+        try {
+          setSentryUser(action.payload);
+        } catch (error) {
+          console.error("Failed to set Sentry user:", error);
+        }
+      }
     },
   },
 });

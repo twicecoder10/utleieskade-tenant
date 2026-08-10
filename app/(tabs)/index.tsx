@@ -88,6 +88,17 @@ export default function HomeScreen() {
     }, [isLoggedIn, refetchDashboard, refetchCases])
   );
 
+  // Poll dashboard every 30 seconds to get updated resolved issues count
+  useEffect(() => {
+    if (!isLoggedIn) return;
+    
+    const interval = setInterval(() => {
+      refetchDashboard();
+    }, 30000); // Poll every 30 seconds
+
+    return () => clearInterval(interval);
+  }, [isLoggedIn, refetchDashboard]);
+
   // Handle different response structures
   const dashboard = dashboardData?.data || dashboardData || {};
   const user = userData?.data || userData || {};
@@ -140,7 +151,9 @@ export default function HomeScreen() {
           <View className="flex-row items-center">
             <Ionicons name="location-outline" size={18} color="#667085" />
             <TouchableOpacity className="flex-row items-center">
-              <Text className="ml-1 text-sm text-gray-500">Oslo, Norway</Text>
+              <Text className="ml-1 text-sm text-gray-500">
+                {user?.userCity ? `${user.userCity}, ${user?.userCountry || "Norway"}` : "Norway"}
+              </Text>
               <Ionicons name="chevron-down-outline" size={16} color="#667085" />
             </TouchableOpacity>
           </View>
@@ -248,24 +261,7 @@ export default function HomeScreen() {
           <Text className="mt-1 text-sm text-neutral-500">{t("Last 30 days", language)}</Text>
         </View>
 
-        {/* Scheduled Inspections Card */}
-        <View className="p-4 mt-4 bg-white rounded-2xl border border-[#E2E2E2]">
-          <View className="flex-row items-center justify-between">
-            <Text className="text-base font-medium text-neutral-900">
-              {t("Scheduled Inspections", language)}
-            </Text>
-            <AntDesign name="calendar" size={24} color="#2387D4" />
-          </View>
-          <Text className="mt-2 text-3xl font-bold text-neutral-900">
-            {dashboardLoading ? "..." : scheduledInspections}
-          </Text>
-          <View className="flex-row gap-1 items-center mt-1">
-            <Text className="text-sm text-primary-500">{t("Next:", language)}</Text>
-            <Text className="text-sm text-neutral-500">
-              {nextInspection}
-            </Text>
-          </View>
-        </View>
+        {/* Scheduled Inspections Card - Hidden as inspectors don't schedule visits */}
 
         {/* Quick Action */}
         <View className="flex flex-col gap-4 mt-6">
@@ -289,8 +285,15 @@ export default function HomeScreen() {
               textStyle="font-bold text-neutral-700 text-base font-medium"
             />
             <Button
-              label={t("Download Receipts", language)}
-              onPress={() => router.push("/reports/receipts")}
+              label={t("Payment History", language)}
+              onPress={() => router.push("/reports/payment-history")}
+              iconImage={require("@/assets/images/document-icon.png")}
+              style="bg-white border border-[#E2E2E2] p-3 rounded-full w-full"
+              textStyle="font-bold text-neutral-700 text-base font-medium"
+            />
+            <Button
+              label={t("Download Reports", language)}
+              onPress={() => router.push("/reports/download-reports")}
               iconImage={require("@/assets/images/document-icon.png")}
               style="bg-white border border-[#E2E2E2] p-3 rounded-full w-full"
               textStyle="font-bold text-neutral-700 text-base font-medium"
@@ -319,18 +322,39 @@ export default function HomeScreen() {
             ) : tenants?.length > 0 ? (
               tenants.map((caseItem: any, index: number) => {
                 // Get first photo URL from various possible locations
-                const firstPhotoUrl = 
+                const apiUrl = process.env.EXPO_PUBLIC_API_URL || "https://utleieskade-api2-production-2915.up.railway.app";
+                let firstPhotoUrl = 
                   caseItem.firstPhotoUrl ||
                   caseItem.damages?.[0]?.damagePhotos?.[0]?.photoUrl ||
                   caseItem.damages?.find((d: any) => d.damagePhotos?.[0]?.photoUrl)?.damagePhotos?.[0]?.photoUrl ||
+                  caseItem.damagePhotos?.[0]?.photoUrl ||
                   null;
+                
+                // Ensure photo URL is a full URL
+                if (firstPhotoUrl && !firstPhotoUrl.startsWith('http')) {
+                  firstPhotoUrl = `${apiUrl}${firstPhotoUrl.startsWith('/') ? '' : '/'}${firstPhotoUrl}`;
+                }
+                
+                // Normalize case status - handle "in progress" -> "in-progress"
+                const rawStatus = caseItem.status || caseItem.caseStatus || "open";
+                let normalizedStatus = rawStatus.toLowerCase();
+                if (normalizedStatus === "in progress") {
+                  normalizedStatus = "in-progress";
+                } else {
+                  normalizedStatus = normalizedStatus.replace(/\s+/g, '-');
+                }
+                
+                // Calculate report time in days
+                const reportTime = caseItem.reportedDate || caseItem.createdAt 
+                  ? Math.floor((new Date().getTime() - new Date(caseItem.reportedDate || caseItem.createdAt).getTime()) / (1000 * 60 * 60 * 24))
+                  : 0;
                 
                 return (
                   <CaseCard
                     key={caseItem.caseId || caseItem.caseID || index}
-                    status={caseItem.status || caseItem.caseStatus || "open"}
+                    status={normalizedStatus}
                     location={caseItem.damages?.[0]?.damageLocation || caseItem.location || "Unknown location"}
-                    reportTime={caseItem.reportTime || 0}
+                    reportTime={reportTime}
                     photoCount={caseItem.numPhotos || caseItem.photoCount || 0}
                     priority={caseItem.priority || caseItem.urgency || caseItem.urgencyLevel || "moderate"}
                     isRecent={false}

@@ -28,7 +28,10 @@ export const userDetailsSchema = z.object({
   confirmPassword: z.string(),
   userAddress: z.string().min(1, { message: "Address is required" }),
   userCity: z.string().min(1, { message: "City is required" }),
-  userPostcode: z.string().min(1, { message: "Postcode is required" }),
+  userPostcode: z
+    .string()
+    .min(1, { message: "Postcode is required" })
+    .regex(/^\d{4}$/, { message: "Postcode must be 4 digits (e.g., 0161)" }),
   userCountry: z.string().default("Norway"),
   userType: z.enum(["tenant", "landlord"], { 
     errorMap: () => ({ message: "User type must be either tenant or landlord" }) 

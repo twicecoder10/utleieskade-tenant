@@ -18,9 +18,15 @@ import { StatusBar } from "expo-status-bar";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import Button from "@/components/ui/Button";
-import { useRegisterMutation } from "@/slice/auth/index.service";
+import CustomSelect from "@/components/ui/CustomSelect";
+import { useRegisterMutation, useOauthLoginMutation } from "@/slice/auth/index.service";
 import { userDetailsSchema } from "@/schemas/userDetailsSchema";
 import { ZodError } from "zod";
+import { getSortedCities, getPostcodeByCity } from "@/constants/norwayCities";
+import { signInWithGoogle, signInWithApple } from "@/utils/oauth";
+import { useAppDispatch } from "@/store/store";
+import { updateUser, setLoggedIn } from "@/slice/userSlice";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 const SignupScreen = () => {
   const [userType, setUserType] = useState<"tenant" | "landlord">("tenant");
@@ -40,7 +46,9 @@ const SignupScreen = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
+  const dispatch = useAppDispatch();
   const [register, { isLoading: isRegistering }] = useRegisterMutation();
+  const [oauthLogin, { isLoading: isOAuthLoading }] = useOauthLoginMutation();
 
   const validateField = (field: string, value: string) => {
     try {
@@ -59,13 +67,27 @@ const SignupScreen = () => {
         userType: "tenant" as const,
       };
       
+      // Only validate if field has a value (don't show errors for empty fields until user tries to submit)
+      if (!value && field !== "userPassword" && field !== "confirmPassword") {
+        setErrors((prev) => ({ ...prev, [field]: "" }));
+        return true;
+      }
+      
       userDetailsSchema.parse(currentFormData);
       setErrors((prev) => ({ ...prev, [field]: "" }));
       return true;
     } catch (error) {
       if (error instanceof ZodError) {
-        const fieldError = error.errors.find(e => e.path.includes(field))?.message || `Invalid ${field}`;
-        setErrors((prev) => ({ ...prev, [field]: fieldError }));
+        const fieldError = error.errors.find(e => {
+          const errorPath = Array.isArray(e.path) ? e.path[0] : e.path;
+          return String(errorPath) === field;
+        });
+        if (fieldError) {
+          setErrors((prev) => ({ ...prev, [field]: fieldError.message }));
+        } else {
+          // Clear error if field is valid
+          setErrors((prev) => ({ ...prev, [field]: "" }));
+        }
         return false;
       }
       return false;
@@ -125,6 +147,56 @@ const SignupScreen = () => {
         );
         console.error("Signup Error:", error);
       }
+    }
+  };
+
+  const handleOAuthSignup = async (oauthUser: any, provider: "google" | "apple") => {
+    try {
+      const response = await oauthLogin({
+        email: oauthUser.email,
+        firstName: oauthUser.firstName || oauthUser.name?.split(" ")[0] || "",
+        lastName: oauthUser.lastName || oauthUser.name?.split(" ").slice(1).join(" ") || "",
+        provider,
+        providerId: oauthUser.id,
+        picture: oauthUser.picture,
+        userType,
+      }).unwrap();
+
+      const { token, user, isNewUser } = response?.data || response;
+
+      if (token) {
+        await AsyncStorage.setItem("token", token);
+        await AsyncStorage.setItem("userToken", token);
+        await AsyncStorage.setItem("isLoggedIn", "true");
+
+        dispatch(updateUser(user || response?.data));
+        dispatch(setLoggedIn(true));
+
+        // If new user or missing address info, prompt to complete profile
+        if (isNewUser || !user?.userAddress || !user?.userCity || !user?.userPostcode) {
+          Alert.alert(
+            "Complete Your Profile",
+            "Please update your address information in your profile settings.",
+            [
+              {
+                text: "OK",
+                onPress: () => {
+                  router.replace("/(tabs)/settings");
+                },
+              },
+            ]
+          );
+        } else {
+          router.replace("/(tabs)");
+        }
+      }
+    } catch (error: any) {
+      console.error("OAuth Signup Error:", error);
+      Alert.alert(
+        "Signup Failed",
+        error?.data?.message || "Failed to sign up. Please try again.",
+        [{ text: "OK" }]
+      );
     }
   };
 
@@ -270,32 +342,52 @@ const SignupScreen = () => {
                   setUserAddress(text);
                   validateField("userAddress", text);
                 }}
-                placeholder="123 Main Street"
+                placeholder="Storgata 15A"
                 error={errors.userAddress}
               />
 
               <View className="flex-row gap-2">
                 <View className="flex-1">
-                  <InputField
+                  <CustomSelect
                     label="City"
+                    items={getSortedCities().map((city) => ({
+                      label: city.name,
+                      value: city.name,
+                    }))}
                     value={userCity}
-                    onChangeText={(text) => {
-                      setUserCity(text);
-                      validateField("userCity", text);
+                    onValueChange={(itemValue) => {
+                      setUserCity(itemValue);
+                      // Auto-fill postcode when city is selected
+                      if (itemValue) {
+                        const postcode = getPostcodeByCity(itemValue);
+                        if (postcode) {
+                          setUserPostcode(postcode);
+                          validateField("userPostcode", postcode);
+                        }
+                      }
+                      validateField("userCity", itemValue);
                     }}
-                    placeholder="London"
-                    error={errors.userCity}
+                    placeholder="Select City"
                   />
+                  {errors.userCity ? (
+                    <Text className="text-red-500 text-xs mt-1">
+                      {errors.userCity}
+                    </Text>
+                  ) : null}
                 </View>
                 <View className="flex-1">
                   <InputField
                     label="Postcode"
                     value={userPostcode}
                     onChangeText={(text) => {
-                      setUserPostcode(text);
-                      validateField("userPostcode", text);
+                      // Only allow digits, max 4
+                      const digits = text.replace(/\D/g, "").substring(0, 4);
+                      setUserPostcode(digits);
+                      validateField("userPostcode", digits);
                     }}
-                    placeholder="S12 2IS"
+                    placeholder="0161"
+                    keyboardType="number-pad"
+                    maxLength={4}
                     error={errors.userPostcode}
                   />
                 </View>
@@ -375,20 +467,42 @@ const SignupScreen = () => {
             {/* social login */}
             <View className="gap-4">
               <Button
-                label="Sign Up with Google"
-                onPress={() => console.log("Google Sign Up")}
+                label={isOAuthLoading ? "Signing up..." : "Sign Up with Google"}
+                onPress={async () => {
+                  try {
+                    const oauthUser = await signInWithGoogle();
+                    if (oauthUser) {
+                      await handleOAuthSignup(oauthUser, "google");
+                    }
+                  } catch (error: any) {
+                    Alert.alert("Error", error?.message || "Failed to sign up with Google");
+                  }
+                }}
                 iconImage={require("@/assets/images/google.png")}
                 style="bg-white border border-[#E2E2E2] p-3 rounded-full w-full"
                 textStyle="font-bold text-neutral-900 text-xl"
+                disabled={isOAuthLoading}
               />
 
-              <Button
-                label="Sign Up with Apple"
-                onPress={() => console.log("Apple Sign Up")}
-                iconImage={require("@/assets/images/apple.png")}
-                style="bg-black p-3 rounded-full w-full"
-                textStyle="font-bold text-white text-xl"
-              />
+              {Platform.OS === "ios" && (
+                <Button
+                  label={isOAuthLoading ? "Signing up..." : "Sign Up with Apple"}
+                  onPress={async () => {
+                    try {
+                      const oauthUser = await signInWithApple();
+                      if (oauthUser) {
+                        await handleOAuthSignup(oauthUser, "apple");
+                      }
+                    } catch (error: any) {
+                      Alert.alert("Error", error?.message || "Failed to sign up with Apple");
+                    }
+                  }}
+                  iconImage={require("@/assets/images/apple.png")}
+                  style="bg-black p-3 rounded-full w-full"
+                  textStyle="font-bold text-white text-xl"
+                  disabled={isOAuthLoading}
+                />
+              )}
             </View>
 
             {/* Terms of Service Checkbox */}

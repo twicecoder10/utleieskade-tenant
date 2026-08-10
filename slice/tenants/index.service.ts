@@ -76,6 +76,14 @@ export const tenantsApi = createApi({
       }),
       invalidatesTags: ["notifications"],
     }),
+
+    getTenantPayments: builder.query({
+      query: () => ({
+        url: "/tenants/payments",
+        method: "GET",
+      }),
+      providesTags: ["payments"],
+    }),
   }),
 });
 
@@ -87,4 +95,5 @@ export const {
   useGetNotificationsQuery,
   useGetUnreadNotificationCountQuery,
   useMarkNotificationAsReadMutation,
+  useGetTenantPaymentsQuery,
 } = tenantsApi;

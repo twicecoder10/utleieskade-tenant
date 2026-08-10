@@ -176,6 +176,33 @@ export const authApi = createApi({
       // Poll every 30 seconds to check for pricing updates (optional, can be disabled if too aggressive)
       // pollingInterval: 30000,
     }),
+
+    // OAuth Login/Signup Endpoint
+    oauthLogin: builder.mutation({
+      query: (body) => ({
+        url: "/users/oauth",
+        method: "POST",
+        body,
+      }),
+      async onQueryStarted(id, { dispatch, queryFulfilled }) {
+        try {
+          const apiResponse = await queryFulfilled;
+          const { token, role, user } = apiResponse?.data?.data || apiResponse?.data;
+          if (token) {
+            await AsyncStorage.setItem("token", token);
+            await AsyncStorage.setItem("userToken", token);
+            await AsyncStorage.setItem("isLoggedIn", "true");
+            if (role) await AsyncStorage.setItem("role", role);
+            dispatch(updateUser(user || apiResponse?.data?.data || apiResponse?.data));
+            const { setLoggedIn } = require("../userSlice");
+            dispatch(setLoggedIn(true));
+          }
+        } catch (error) {
+          console.error("OAuth Login Error:", error);
+        }
+      },
+      invalidatesTags: ["profile"],
+    }),
   }),
 });
 
@@ -193,5 +220,6 @@ export const {
   useResendOtpMutation,
   useVerifyOtpMutation,
   useGetPlatformPricingSettingsQuery,
+  useOauthLoginMutation,
 } = authApi;
 

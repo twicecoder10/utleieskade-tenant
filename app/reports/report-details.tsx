@@ -16,6 +16,9 @@ import { useGetCaseDetailsQuery } from "@/slice/cases/index.service";
 import { getApiUrl } from "@/utils/apiUrl";
 import { useAppSelector } from "@/store/store";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import * as FileSystem from "expo-file-system";
+import * as Sharing from "expo-sharing";
+import * as Linking from "expo-linking";
 
 const ReportDetails = () => {
   const params = useLocalSearchParams();
@@ -108,9 +111,9 @@ const ReportDetails = () => {
           >
             <Text
               className="text-xs font-semibold capitalize"
-              style={{ color: getStatusColor(caseData.caseStatus) }}
+              style={{ color: getStatusColor(caseData.caseStatus || caseData.status) }}
             >
-              {caseData.caseStatus}
+              {(caseData.caseStatus || caseData.status || "open").toLowerCase().replace(/\s+/g, '-')}
             </Text>
           </View>
           <View
@@ -351,16 +354,44 @@ const ReportDetails = () => {
                     onPress={async () => {
                       try {
                         const token = await AsyncStorage.getItem("token") || await AsyncStorage.getItem("userToken");
-                        const apiUrl = getApiUrl();
-                        // Use the inspector report PDF endpoint - tenant can access their own case reports
-                        const reportUrl = `${apiUrl}/inspectors/reports/${report.reportId}/pdf`;
+                        if (!token) {
+                          Alert.alert("Error", "Please login to download report");
+                          return;
+                        }
                         
-                        // Open PDF in browser or download
-                        const Linking = require("expo-linking").default;
-                        await Linking.openURL(`${reportUrl}`);
-                      } catch (error) {
+                        const apiUrl = getApiUrl();
+                        // Use the tenant report PDF endpoint
+                        const reportUrl = `${apiUrl}/tenants/reports/${report.reportId}/pdf`;
+                        
+                        // For mobile, use FileSystem to download and share
+                        try {
+                          const documentDir = FileSystem.documentDirectory || FileSystem.cacheDirectory || '';
+                          const fileUri = `${documentDir}report-${report.reportId}.pdf`;
+                          
+                          const downloadResult = await FileSystem.downloadAsync(reportUrl, fileUri, {
+                            headers: {
+                              Authorization: `Bearer ${token}`,
+                            },
+                          });
+
+                          if (downloadResult.status === 200) {
+                            if (await Sharing.isAvailableAsync()) {
+                              await Sharing.shareAsync(downloadResult.uri);
+                            } else {
+                              Alert.alert("Success", "Report downloaded successfully");
+                            }
+                          } else {
+                            throw new Error(`Failed to download report: ${downloadResult.status}`);
+                          }
+                        } catch (downloadError: any) {
+                          // Fallback to opening URL directly in browser
+                          console.log("Direct download failed, trying URL redirect:", downloadError);
+                          const urlWithAuth = `${reportUrl}?token=${encodeURIComponent(token)}`;
+                          await Linking.openURL(urlWithAuth);
+                        }
+                      } catch (error: any) {
                         console.error("Download report error:", error);
-                        Alert.alert("Error", "Failed to download report. Please try again.");
+                        Alert.alert("Error", error?.message || "Failed to download report. Please try again.");
                       }
                     }}
                     className="flex-row items-center justify-center gap-2 bg-primary-500 p-3 rounded-lg mt-2"

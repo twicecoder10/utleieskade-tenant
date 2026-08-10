@@ -33,26 +33,24 @@ const CustomSelect: React.FC<SelectProps> = ({
   };
 
   return (
-    <View className="mb-4">
+    <View className="w-full gap-1">
       {label && (
-        <Text className="text-lg font-semibold mb-2 text-gray-800">
-          {label}
-        </Text>
+        <Text className="text-base">{label}</Text>
       )}
 
       <TouchableOpacity
         onPress={() => setModalVisible(true)}
-        className="border border-gray-300 rounded-lg bg-white flex-row items-center justify-between px-4 w-full min-h-[44px]"
+        className={`text-base text-black rounded-xl border border-neutral-400 bg-white flex-row items-center justify-between px-3.5 w-full h-[44px]`}
         activeOpacity={0.7}
       >
         <Text
           className={`text-base flex-1 ${
-            value ? "text-gray-900" : "text-gray-500"
+            value ? "text-black" : "text-neutral-500"
           }`}
         >
           {selectedItem ? selectedItem.label : placeholder}
         </Text>
-        <Ionicons name="chevron-down" size={20} color="#9CA3AF" />
+        <Ionicons name="chevron-down" size={20} color="#667085" />
       </TouchableOpacity>
 
       <Modal

@@ -109,22 +109,37 @@ const AllReportCases = () => {
             <View className="flex flex-col gap-4">
               {cases.map((caseItem: any, index: number) => {
                 // Get first photo URL from various possible locations
-                const firstPhotoUrl = 
+                const apiUrl = process.env.EXPO_PUBLIC_API_URL || "https://utleieskade-api2-production-2915.up.railway.app";
+                let firstPhotoUrl = 
                   caseItem.firstPhotoUrl ||
                   caseItem.damages?.[0]?.damagePhotos?.[0]?.photoUrl ||
                   caseItem.damages?.find((d: any) => d.damagePhotos?.[0]?.photoUrl)?.damagePhotos?.[0]?.photoUrl ||
                   null;
                 
+                // Ensure photo URL is a full URL
+                if (firstPhotoUrl && !firstPhotoUrl.startsWith('http')) {
+                  firstPhotoUrl = `${apiUrl}${firstPhotoUrl.startsWith('/') ? '' : '/'}${firstPhotoUrl}`;
+                }
+                
+                // Normalize case status - handle "in progress" -> "in-progress"
+                const rawStatus = caseItem.status || caseItem.caseStatus || "open";
+                let normalizedStatus = rawStatus.toLowerCase();
+                if (normalizedStatus === "in progress") {
+                  normalizedStatus = "in-progress";
+                } else {
+                  normalizedStatus = normalizedStatus.replace(/\s+/g, '-');
+                }
+                
                 return (
                   <CaseCard
                     key={index}
-                    status={caseItem.status}
+                    status={normalizedStatus}
                     location={
                       caseItem.damages?.[0]?.damageLocation || caseItem.caseTitle || "Unknown location"
                     }
                     reportTime={formatReportTime(caseItem.reportedDate || caseItem.createdAt)}
                     photoCount={caseItem.numPhotos || caseItem.damages?.[0]?.numPhotos || caseItem.damages?.reduce((sum: number, d: any) => sum + (d.damagePhotos?.length || 0), 0) || 0}
-                    priority={caseItem.urgency || caseItem.urgencyLevel}
+                    priority={caseItem.urgency || caseItem.urgencyLevel || "moderate"}
                     isRecent={true}
                     caseTitle={caseItem.caseTitle || caseItem.caseDescription}
                     propertyAddress={caseItem.property?.propertyAddress}

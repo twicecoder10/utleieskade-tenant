@@ -14,6 +14,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { AntDesign, Feather, MaterialIcons } from "@expo/vector-icons";
 import Header from "@/components/ui/Header";
 import Button from "@/components/ui/Button";
+import CustomSelect from "@/components/ui/CustomSelect";
 import { router } from "expo-router";
 import { logout } from "@/slice/userSlice";
 import { useAppDispatch, useAppSelector } from "@/store/store";
@@ -24,6 +25,7 @@ import {
 } from "@/slice/auth/index.service";
 import * as ImagePicker from "expo-image-picker";
 import { useUploadFileMutation } from "@/slice/files/index.service";
+import { getSortedCities, getPostcodeByCity } from "@/constants/norwayCities";
 
 export default function SettingsScreen() {
   const dispatch = useAppDispatch();
@@ -44,6 +46,9 @@ export default function SettingsScreen() {
   const [lastName, setLastName] = useState("");
   const [phone, setPhone] = useState("+47");
   const [email, setEmail] = useState("");
+  const [address, setAddress] = useState("");
+  const [city, setCity] = useState("");
+  const [postcode, setPostcode] = useState("");
   const [selectedLanguage, setSelectedLanguage] = useState("Norwegian"); // Default Norwegian
   const [selectedTheme, setSelectedTheme] = useState("Light");
   const [profileImage, setProfileImage] = useState(user?.userProfilePic || "https://i.pravatar.cc/57");
@@ -57,6 +62,9 @@ export default function SettingsScreen() {
     if (user?.userLastName) setLastName(user.userLastName);
     if (user?.userPhone) setPhone(user.userPhone);
     if (user?.userEmail) setEmail(user.userEmail);
+    if (user?.userAddress) setAddress(user.userAddress);
+    if (user?.userCity) setCity(user.userCity);
+    if (user?.userPostcode) setPostcode(user.userPostcode);
     if (user?.userProfilePic) setProfileImage(user.userProfilePic);
   }, [user]);
 
@@ -176,6 +184,9 @@ export default function SettingsScreen() {
       userLastName: lastName,
       userEmail: email,
       userPhone: phone,
+      userAddress: address,
+      userCity: city,
+      userPostcode: postcode,
     };
 
     try {
@@ -336,6 +347,73 @@ export default function SettingsScreen() {
                   color="#98A2B3"
                   className="absolute right-3 top-1/2 -translate-y-1/2"
                 />
+              </View>
+            </View>
+
+            {/* Address */}
+            <View className="flex flex-col gap-1">
+              <Text className="text-neutral-400 text-base">Address</Text>
+              <View className="relative">
+                <TextInput
+                  value={address}
+                  onChangeText={setAddress}
+                  placeholder="Storgata 15A"
+                  className="border border-gray-300 rounded-lg px-4 py-3 h-[44px] text-base text-neutral-900 font-medium pr-10"
+                />
+                <Feather
+                  name="edit-3"
+                  size={20}
+                  color="#98A2B3"
+                  className="absolute right-3 top-1/2 -translate-y-1/2"
+                />
+              </View>
+            </View>
+
+            {/* City and Postcode */}
+            <View className="flex-row gap-2">
+              <View className="flex-1">
+                <CustomSelect
+                  label="City"
+                  items={getSortedCities().map((cityOption) => ({
+                    label: cityOption.name,
+                    value: cityOption.name,
+                  }))}
+                  value={city}
+                  onValueChange={(itemValue) => {
+                    setCity(itemValue);
+                    // Auto-fill postcode when city is selected
+                    if (itemValue) {
+                      const postcodeValue = getPostcodeByCity(itemValue);
+                      if (postcodeValue) {
+                        setPostcode(postcodeValue);
+                      }
+                    }
+                  }}
+                  placeholder="Select City"
+                />
+              </View>
+              <View className="flex-1 flex-col gap-1">
+                <Text className="text-neutral-400 text-base">Postcode</Text>
+                <View className="relative">
+                  <TextInput
+                    value={postcode}
+                    onChangeText={(text) => {
+                      // Only allow digits, max 4
+                      const digits = text.replace(/\D/g, "").substring(0, 4);
+                      setPostcode(digits);
+                    }}
+                    placeholder="0161"
+                    keyboardType="number-pad"
+                    maxLength={4}
+                    className="border border-gray-300 rounded-lg px-4 py-3 h-[44px] text-base text-neutral-900 font-medium pr-10"
+                  />
+                  <Feather
+                    name="edit-3"
+                    size={20}
+                    color="#98A2B3"
+                    className="absolute right-3 top-1/2 -translate-y-1/2"
+                  />
+                </View>
               </View>
             </View>
 
